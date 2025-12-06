@@ -1,33 +1,63 @@
 import { useMemo, useState } from "react";
+import { ControlsPanel } from "./components/ControlsPanel";
+import { QrPreview } from "./components/QrPreview";
+import type {
+  LabelOptions,
+  LogoAsset,
+  LogoSettings,
+  QrDesignState,
+} from "./types";
+import { getContrastRatio } from "./lib/color";
 
-const QR_STYLES = [
-  { id: "classic", label: "Classic" },
-  { id: "rounded", label: "Rounded" },
-  { id: "dots", label: "Dots" },
-  { id: "pills", label: "Pills" },
-  { id: "outline", label: "Outline" },
-];
+const initialDesign: QrDesignState = {
+  url: "https://example.com",
+  style: "classic",
+  foreground: "#111111",
+  background: "#ffffff",
+  transparentBackground: false,
+  label: {
+    text: "",
+    size: "md",
+    weight: "regular",
+    align: "center",
+  },
+};
 
-const LABEL_SIZES = [
-  { id: "sm", label: "Small" },
-  { id: "md", label: "Medium" },
-  { id: "lg", label: "Large" },
-];
+const initialLogo: LogoSettings = {
+  asset: null,
+  size: 18,
+  safeZone: true,
+};
 
 export default function App() {
-  const [url, setUrl] = useState("https://example.com");
-  const [style, setStyle] = useState(QR_STYLES[0].id);
-  const [foreground, setForeground] = useState("#111111");
-  const [background, setBackground] = useState("#ffffff");
-  const [transparentBg, setTransparentBg] = useState(false);
-  const [label, setLabel] = useState("");
-  const [labelSize, setLabelSize] = useState(LABEL_SIZES[1].id);
-  const [labelWeight, setLabelWeight] = useState<"regular" | "bold">("regular");
+  const [design, setDesign] = useState<QrDesignState>(initialDesign);
+  const [logoSettings, setLogoSettings] = useState<LogoSettings>(initialLogo);
 
-  const canDownload = useMemo(
-    () => url.trim().length > 0 && isLikelyUrl(url),
-    [url],
+  const urlValid = useMemo(() => isLikelyUrl(design.url), [design.url]);
+  const contrastRatio = useMemo(
+    () => getContrastRatio(design.foreground, design.background),
+    [design.foreground, design.background],
   );
+  const contrastWarnings = useMemo(() => {
+    const warnings: string[] = [];
+    if (!design.transparentBackground && contrastRatio < 3) {
+      warnings.push(
+        "Foreground and background colors have low contrast. Increase contrast for better scans.",
+      );
+    }
+    return warnings;
+  }, [design.transparentBackground, contrastRatio]);
+
+  const handleLabelChange = (partial: Partial<LabelOptions>) => {
+    setDesign((prev) => ({
+      ...prev,
+      label: { ...prev.label, ...partial },
+    }));
+  };
+
+  const handleLogoAssetChange = (asset: LogoAsset | null) => {
+    setLogoSettings((prev) => ({ ...prev, asset }));
+  };
 
   return (
     <div className="app-shell">
@@ -36,164 +66,70 @@ export default function App() {
           <p className="eyebrow">QR Crafter</p>
           <h1>Design branded QR codes in seconds.</h1>
           <p className="lede">
-            Enter a URL, experiment with visual styles, adjust colors, and get
-            a quick preview. All downloads will stay disabled until a valid URL
-            is provided.
+            Customize module styles, color palettes, logos, and labels. Preview
+            everything instantly and export to JPEG, PNG, SVG, or WEBP.
           </p>
         </div>
       </header>
 
       <main className="app-shell__main">
-        <section className="panel panel--controls">
-          <h2>Controls</h2>
+        <ControlsPanel
+          design={design}
+          urlValid={urlValid}
+          contrastRatio={contrastRatio}
+          logoSettings={logoSettings}
+          onUrlChange={(value) =>
+            setDesign((prev) => ({
+              ...prev,
+              url: value,
+            }))
+          }
+          onStyleChange={(value) =>
+            setDesign((prev) => ({
+              ...prev,
+              style: value,
+            }))
+          }
+          onForegroundChange={(value) =>
+            setDesign((prev) => ({
+              ...prev,
+              foreground: value,
+            }))
+          }
+          onBackgroundChange={(value) =>
+            setDesign((prev) => ({
+              ...prev,
+              background: value,
+            }))
+          }
+          onTransparentToggle={(value) =>
+            setDesign((prev) => ({
+              ...prev,
+              transparentBackground: value,
+            }))
+          }
+          onLabelChange={handleLabelChange}
+          onLogoAssetChange={handleLogoAssetChange}
+          onLogoSizeChange={(value) =>
+            setLogoSettings((prev) => ({
+              ...prev,
+              size: value,
+            }))
+          }
+          onLogoSafeZoneChange={(value) =>
+            setLogoSettings((prev) => ({
+              ...prev,
+              safeZone: value,
+            }))
+          }
+        />
 
-          <label className="field">
-            <span>Destination URL</span>
-            <input
-              type="url"
-              placeholder="https://your-domain.com"
-              value={url}
-              onChange={(event) => setUrl(event.target.value)}
-            />
-          </label>
-
-          <div className="field">
-            <span>QR Style</span>
-            <div className="style-grid">
-              {QR_STYLES.map((option) => (
-                <button
-                  type="button"
-                  key={option.id}
-                  className={`chip ${style === option.id ? "chip--active" : ""}`}
-                  onClick={() => setStyle(option.id)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="field field--dual">
-            <label>
-              <span>Foreground</span>
-              <input
-                type="color"
-                value={foreground}
-                aria-label="Foreground color"
-                onChange={(event) => setForeground(event.target.value)}
-              />
-            </label>
-
-            <label>
-              <span>Background</span>
-              <input
-                type="color"
-                value={background}
-                aria-label="Background color"
-                onChange={(event) => setBackground(event.target.value)}
-                disabled={transparentBg}
-              />
-            </label>
-          </div>
-
-  <label className="field field--checkbox">
-            <input
-              type="checkbox"
-              checked={transparentBg}
-              onChange={(event) => setTransparentBg(event.target.checked)}
-            />
-            <span>Transparent background (PNG/WEBP/SVG)</span>
-          </label>
-
-          <label className="field">
-            <span>Optional label</span>
-            <input
-              type="text"
-              placeholder="Add a caption"
-              value={label}
-              onChange={(event) => setLabel(event.target.value)}
-            />
-          </label>
-
-          <div className="field">
-            <span>Label size</span>
-            <div className="style-grid">
-              {LABEL_SIZES.map((size) => (
-                <button
-                  type="button"
-                  key={size.id}
-                  className={`chip ${labelSize === size.id ? "chip--active" : ""}`}
-                  onClick={() => setLabelSize(size.id)}
-                >
-                  {size.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="field">
-            <span>Label weight</span>
-            <div className="style-grid">
-              {["regular", "bold"].map((weight) => (
-                <button
-                  type="button"
-                  key={weight}
-                  className={`chip ${
-                    labelWeight === weight ? "chip--active" : ""
-                  }`}
-                  onClick={() =>
-                    setLabelWeight(weight as "regular" | "bold")
-                  }
-                >
-                  {weight}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="panel panel--preview">
-          <h2>Preview</h2>
-
-          <div className="preview-card">
-            <div
-              className="mock-qr"
-              style={{
-                "--mock-qr-foreground": foreground,
-                "--mock-qr-background": transparentBg ? "transparent" : background,
-              } as React.CSSProperties}
-            >
-              <div className="mock-qr__logo">Logo</div>
-            </div>
-
-            {label && (
-              <p
-                className={`preview-label preview-label--${labelSize} preview-label--${labelWeight}`}
-              >
-                {label}
-              </p>
-            )}
-          </div>
-
-          <div className="downloads">
-            {["jpeg", "png", "svg", "webp"].map((format) => (
-              <button
-                key={format}
-                className="download-button"
-                type="button"
-                disabled={!canDownload}
-              >
-                Download {format.toUpperCase()}
-              </button>
-            ))}
-          </div>
-
-          {!canDownload && (
-            <p className="hint">
-              Enter a valid URL to unlock the download buttons.
-            </p>
-          )}
-        </section>
+        <QrPreview
+          design={design}
+          logo={logoSettings}
+          urlValid={urlValid}
+          warnings={contrastWarnings}
+        />
       </main>
     </div>
   );

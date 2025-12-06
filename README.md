@@ -1,23 +1,21 @@
 # QR Crafter
 
-Create **polished, branded QR codes** with multiple visual styles, logo upload, live preview, captions, and downloads in JPEG/PNG/SVG/WEBP formats. The project uses **React + Vite + TypeScript** on the frontend with plenty of room for a lightweight Node/Express backend later if desired.
+Create **polished, branded QR codes** with multiple visual styles, logo upload, safe-zone controls, live preview, optional labels, and downloads in JPEG/PNG/SVG/WEBP formats. The project uses **React + Vite + TypeScript** on the frontend with plenty of room for a lightweight Node/Express backend later if desired.
 
-> ⚠️ The CODEX agent cannot install or download dependencies. Follow the instructions below on your own machine.
+> ⚠️ The CODEX agent cannot install or download dependencies. Follow the instructions below on your own machine when new packages are introduced.
 
 ---
 
-## Features (planned & in-progress)
+## Features
 
-- Minimal, responsive interface with a controls panel and preview panel.
-- URL-driven QR generation with validation and high error correction when logos are used.
-- Style selector: Classic, Rounded, Dots, Pills, Outline.
-- Color pickers with a transparent background toggle (PNG/WEBP/SVG only).
-- Client-side logo upload with size + safe-zone controls (work-in-progress placeholder in UI).
-- Optional text label beneath the QR code that is also included in exported assets.
-- Live preview that updates as settings change, warning about risky combinations.
-- Download buttons for **JPEG**, **PNG**, **SVG**, and **WEBP** with descriptive filenames.
-
-The initial scaffold already provides the controls layout, state hooks, and basic styling so features can be implemented incrementally.
+- Minimal, responsive interface with a controls panel and real-time preview panel.
+- URL-driven QR generation with validation and auto high error correction when logos are present.
+- Style selector: **Classic**, **Rounded**, **Dots**, **Pills**, **Outline** rendered through a custom drawing pipeline.
+- Foreground/background color pickers with contrast warnings plus a transparent background toggle (PNG/WEBP/SVG only).
+- Client-side logo upload (PNG/JPEG/WEBP/SVG, ≤ 4 MB) with a size slider and optional white safe zone.
+- Optional label beneath the QR code (multi-line, adjustable size/weight/alignment) included in preview and exports.
+- Live preview that updates instantly and surfaces warnings when scannability might degrade.
+- Download buttons for **JPEG**, **PNG**, **SVG**, and **WEBP** with timestamped filenames and transparency handling.
 
 ---
 
@@ -46,20 +44,18 @@ git clone <your-repo-url> qr-crafter
 cd qr-crafter
 ```
 
-Install dependencies locally:
+Install dependencies locally (rerun whenever `package.json` changes):
 
 ```bash
 npm install
 ```
 
-Current dependencies:
+Current dependencies include:
 
 ```bash
-npm install react react-dom
+npm install react react-dom qrcode
 npm install -D typescript vite @vitejs/plugin-react-swc @types/react @types/react-dom
 ```
-
-Re-run `npm install` whenever `package.json` changes.
 
 ---
 
@@ -71,7 +67,7 @@ Start the Vite dev server:
 npm run dev
 ```
 
-Then open the printed URL (usually `http://localhost:5173`). The UI already shows the controls/preview shell so you can begin wiring up QR rendering, uploads, etc.
+Then open the printed URL (usually `http://localhost:5173`). The UI already shows the fully wired controls + preview + download workflow.
 
 ---
 
@@ -96,12 +92,12 @@ If/when an Express backend is added to serve the compiled frontend, document the
 ## Usage Workflow
 
 1. Launch the dev server and open the app.
-2. Enter the destination URL. The preview will validate and only enable downloads for valid URLs.
+2. Enter the destination URL. The preview validates it and only enables downloads for valid URLs.
 3. Choose a QR style (Classic, Rounded, Dots, Pills, Outline).
 4. Pick foreground/background colors and optionally enable a transparent background.
-5. Upload a brand logo (UI placeholder exists; rendering logic is the next milestone). Adjust logo size and toggle the white safe zone when implemented.
-6. Add an optional label, selecting its size and weight.
-7. Watch the preview update automatically.
+5. Upload a brand logo (PNG/JPEG/WEBP/SVG up to 4 MB). Adjust the size slider and toggle the white safe zone for better scannability.
+6. Add an optional label, selecting its size, weight, and alignment.
+7. Watch the preview update automatically and review any warnings.
 8. Download the QR as JPEG, PNG, SVG, or WEBP. Transparency applies to PNG/WEBP/SVG; JPEG always uses a solid background.
 
 ---
@@ -109,15 +105,15 @@ If/when an Express backend is added to serve the compiled frontend, document the
 ## Transparency Notes
 
 - **PNG / WEBP / SVG**: Respect the transparent background toggle.
-- **JPEG**: Cannot be transparent; warn users when they try to export with transparency enabled.
+- **JPEG**: Cannot be transparent. If transparency is enabled, the export automatically falls back to the configured background color and the UI shows a warning.
 
 ---
 
 ## Accessibility & Scannability Tips
 
-- Keep strong contrast between foreground and background. Provide inline warnings when the contrast ratio falls below ~4.5:1.
+- Keep strong contrast between foreground and background (the UI warns when ratios drop below ~3:1 on opaque designs).
 - Use a white safe-zone under logos to preserve the QR pattern.
-- Avoid huge logos or extreme style choices that remove too many modules; warn but do not block.
+- Avoid huge logos or extreme style choices that remove too many modules; warnings highlight risky combos but don't block you.
 
 ---
 
