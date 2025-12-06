@@ -41,6 +41,14 @@ interface ModuleMatrix {
   rows: boolean[][];
 }
 
+interface LogoClip {
+  x: number;
+  y: number;
+  size: number;
+  contentSize: number;
+  padding: number;
+}
+
 interface LabelLayout {
   lines: string[];
   height: number;
@@ -57,7 +65,8 @@ export async function renderQrToCanvas(
     options,
     options.size,
   );
-
+  const geometry = computeModuleSize(matrix.size, options.size);
+  const logoClip = computeLogoClip(matrix.size, geometry.moduleSize, options);
   const devicePixelRatio = options.pixelRatio ?? window.devicePixelRatio ?? 1;
   const canvasHeight = options.size + labelLayout.height;
   canvas.width = Math.round(options.size * devicePixelRatio);
@@ -78,8 +87,8 @@ export async function renderQrToCanvas(
     ctx.fillRect(0, 0, options.size, canvasHeight);
   }
 
-  drawModules(ctx, matrix, options);
-  drawLogo(ctx, matrix, options);
+  drawModules(ctx, matrix, options, geometry, logoClip);
+  drawLogo(ctx, options, logoClip);
   drawLabel(ctx, labelLayout, options);
 }
 
@@ -118,7 +127,9 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
     options,
     options.size,
   );
-  const { moduleSize, offset } = computeModuleSize(matrix.size, options.size);
+  const geometry = computeModuleSize(matrix.size, options.size);
+  const logoClip = computeLogoClip(matrix.size, geometry.moduleSize, options);
+  const { moduleSize, offset } = geometry;
   const labelStart = options.size;
   const totalHeight = options.size + labelLayout.height;
   const parts: string[] = [];
@@ -149,6 +160,7 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
         offset,
         matrix.size,
         styleScale,
+        logoClip,
       );
       return;
     }
@@ -162,6 +174,9 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
         parts.push(
           `<rect x="${baseX}" y="${baseY}" width="${moduleSize}" height="${moduleSize}"/>`,
         );
+        return;
+      }
+      if (logoClip && moduleWithinClip(baseX, baseY, moduleSize, logoClip)) {
         return;
       }
 
@@ -202,19 +217,18 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
   });
   parts.push("</g>");
 
-  if (options.logo?.dataUrl) {
-    const logoSize = (matrix.size * moduleSize * options.logo.sizePercent) / 100;
-    const x = options.size / 2 - logoSize / 2;
-    const y = options.size / 2 - logoSize / 2;
-    if (options.logo.safeZone) {
+  if (options.logo?.dataUrl && logoClip) {
+    if (options.logo.safeZone && logoClip.padding > 0) {
       parts.push(
-        `<rect x="${x - 10}" y="${y - 10}" width="${logoSize + 20}" height="${logoSize + 20}" rx="${(logoSize + 20) / 5}" fill="#ffffff"/>`,
+        `<rect x="${logoClip.x}" y="${logoClip.y}" width="${logoClip.size}" height="${logoClip.size}" rx="${logoClip.size * 0.15}" fill="#ffffff"/>`,
       );
     }
+    const logoX = logoClip.x + logoClip.padding;
+    const logoY = logoClip.y + logoClip.padding;
     parts.push(
       `<image href="${escapeAttribute(
         options.logo.dataUrl,
-      )}" x="${x}" y="${y}" width="${logoSize}" height="${logoSize}" preserveAspectRatio="xMidYMid meet"/>`,
+      )}" x="${logoX}" y="${logoY}" width="${logoClip.contentSize}" height="${logoClip.contentSize}" preserveAspectRatio="xMidYMid meet"/>`,
     );
   }
 
@@ -320,15 +334,26 @@ function drawModules(
   ctx: CanvasRenderingContext2D,
   matrix: ModuleMatrix,
   options: QrRenderOptions,
+  geometry: { moduleSize: number; offset: number },
+  logoClip: LogoClip | null,
 ) {
-  const { moduleSize, offset } = computeModuleSize(matrix.size, options.size);
+  const { moduleSize, offset } = geometry;
   const styleScale = getStyleScale(options.style);
   ctx.fillStyle = options.foreground;
   ctx.strokeStyle = options.foreground;
 
   matrix.rows.forEach((row, y) => {
     if (options.style === "pills") {
-      drawPillRow(ctx, row, y, moduleSize, offset, matrix.size, styleScale);
+      drawPillRow(
+        ctx,
+        row,
+        y,
+        moduleSize,
+        offset,
+        matrix.size,
+        styleScale,
+        logoClip,
+      );
       return;
     }
 
@@ -339,6 +364,9 @@ function drawModules(
 
       if (isFinderModule(x, y, matrix.size)) {
         ctx.fillRect(drawX, drawY, moduleSize, moduleSize);
+        return;
+      }
+      if (logoClip && moduleWithinClip(drawX, drawY, moduleSize, logoClip)) {
         return;
       }
 
@@ -386,6 +414,7 @@ function drawPillRow(
   offset: number,
   matrixSize: number,
   styleScale: number,
+  logoClip: LogoClip | null,
 ) {
   let runStart = -1;
   const verticalInset = (moduleSize - moduleSize * styleScale) / 2;
@@ -425,6 +454,14 @@ function drawPillRow(
     }
 
     if (isDark) {
+      const baseX = offset + x * moduleSize;
+      const baseY = offset + rowIndex * moduleSize;
+      if (logoClip && moduleWithinClip(baseX, baseY, moduleSize, logoClip)) {
+        if (runStart !== -1) {
+          flushRun(x);
+        }
+        return;
+      }
       if (runStart === -1) {
         runStart = x;
       }
@@ -449,6 +486,7 @@ function appendPillRowSvg(
   offset: number,
   matrixSize: number,
   styleScale: number,
+  logoClip: LogoClip | null,
 ) {
   let runStart = -1;
   const verticalInset = (moduleSize - moduleSize * styleScale) / 2;
@@ -486,6 +524,14 @@ function appendPillRowSvg(
     }
 
     if (isDark) {
+      const baseX = offset + x * moduleSize;
+      const baseY = offset + rowIndex * moduleSize;
+      if (logoClip && moduleWithinClip(baseX, baseY, moduleSize, logoClip)) {
+        if (runStart !== -1) {
+          flushRun(x);
+        }
+        return;
+      }
       if (runStart === -1) {
         runStart = x;
       }
@@ -504,25 +550,32 @@ function appendPillRowSvg(
 
 function drawLogo(
   ctx: CanvasRenderingContext2D,
-  matrix: ModuleMatrix,
   options: QrRenderOptions,
+  logoClip: LogoClip | null,
 ) {
-  if (!options.logo?.image) {
+  if (!options.logo?.image || !logoClip) {
     return;
   }
 
-  const { moduleSize } = computeModuleSize(matrix.size, options.size);
-  const qrArea = matrix.size * moduleSize;
-  const logoSize = (qrArea * options.logo.sizePercent) / 100;
-  const x = options.size / 2 - logoSize / 2;
-  const y = options.size / 2 - logoSize / 2;
-
-  if (options.logo.safeZone) {
+  if (options.logo.safeZone && logoClip.padding > 0) {
     ctx.fillStyle = "#ffffff";
-    drawRoundedRect(ctx, x - 12, y - 12, logoSize + 24, logoSize + 24, (logoSize + 24) * 0.2);
+    drawRoundedRect(
+      ctx,
+      logoClip.x,
+      logoClip.y,
+      logoClip.size,
+      logoClip.size,
+      logoClip.size * 0.15,
+    );
   }
 
-  ctx.drawImage(options.logo.image, x, y, logoSize, logoSize);
+  ctx.drawImage(
+    options.logo.image,
+    logoClip.x + logoClip.padding,
+    logoClip.y + logoClip.padding,
+    logoClip.contentSize,
+    logoClip.contentSize,
+  );
 }
 
 function drawLabel(
@@ -575,6 +628,42 @@ function computeModuleSize(moduleCount: number, size: number) {
   const moduleSize = size / totalModules;
   const offset = moduleSize * QUIET_ZONE_MODULES;
   return { moduleSize, offset };
+}
+
+function computeLogoClip(
+  matrixSize: number,
+  moduleSize: number,
+  options: QrRenderOptions,
+): LogoClip | null {
+  const hasLogo =
+    options.logo &&
+    (options.logo.image || options.logo.dataUrl) &&
+    options.logo.sizePercent > 0;
+  if (!hasLogo) {
+    return null;
+  }
+  const qrPixelArea = matrixSize * moduleSize;
+  const contentSize = (qrPixelArea * options.logo!.sizePercent) / 100;
+  const padding = options.logo!.safeZone ? Math.max(moduleSize * 1.5, 8) : 0;
+  const size = contentSize + padding * 2;
+  const start = options.size / 2 - size / 2;
+  return { x: start, y: start, size, contentSize, padding };
+}
+
+function moduleWithinClip(
+  moduleX: number,
+  moduleY: number,
+  moduleSize: number,
+  clip: LogoClip,
+) {
+  const right = moduleX + moduleSize;
+  const bottom = moduleY + moduleSize;
+  return (
+    moduleX < clip.x + clip.size &&
+    right > clip.x &&
+    moduleY < clip.y + clip.size &&
+    bottom > clip.y
+  );
 }
 
 function isFinderModule(x: number, y: number, size: number) {

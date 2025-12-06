@@ -26,7 +26,7 @@ const initialDesign: QrDesignState = {
 const initialLogo: LogoSettings = {
   asset: null,
   size: 18,
-  safeZone: true,
+  safeZone: false,
 };
 
 export default function App() {
