@@ -7,6 +7,13 @@ const LABEL_FONT_SIZES: Record<NonNullable<LabelOptions["size"]>, number> = {
   md: 22,
   lg: 28,
 };
+const STYLE_SCALE: Record<QrStyle, number> = {
+  classic: 1,
+  rounded: 0.78,
+  dots: 0.58,
+  pills: 0.64,
+  outline: 0.6,
+};
 
 export interface LogoRenderOptions {
   image?: HTMLImageElement | null;
@@ -128,81 +135,71 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
     );
   }
 
-  parts.push(`<g fill="${escapeAttribute(options.foreground)}">`);
-  switch (options.style) {
-    case "dots":
-      matrix.rows.forEach((row, y) => {
-        row.forEach((isDark, x) => {
-          if (!isDark) return;
-          const cx = offset + (x + 0.5) * moduleSize;
-          const cy = offset + (y + 0.5) * moduleSize;
-          const r = moduleSize * 0.45;
-          parts.push(`<circle cx="${cx}" cy="${cy}" r="${r}"/>`);
-        });
-      });
-      break;
-    case "pills":
-      matrix.rows.forEach((row, y) => {
-        let runStart = -1;
-        row.forEach((isDark, x) => {
-          if (isDark && runStart === -1) {
-            runStart = x;
-          }
-          if ((!isDark || x === row.length - 1) && runStart !== -1) {
-            const runEnd = !isDark ? x : x + 1;
-            const width = (runEnd - runStart) * moduleSize;
-            const rx = moduleSize / 2;
-            const drawX = offset + runStart * moduleSize;
-            const drawY = offset + y * moduleSize;
-            parts.push(
-              `<rect x="${drawX}" y="${drawY}" width="${width}" height="${moduleSize}" rx="${rx}" ry="${rx}"/>`,
-            );
-            runStart = -1;
-          }
-        });
-      });
-      break;
-    case "outline":
-      matrix.rows.forEach((row, y) => {
-        row.forEach((isDark, x) => {
-          if (!isDark) return;
-          const drawX = offset + x * moduleSize + moduleSize * 0.15;
-          const drawY = offset + y * moduleSize + moduleSize * 0.15;
-          const side = moduleSize * 0.7;
-          const stroke = moduleSize * 0.25;
+  const fillColor = escapeAttribute(options.foreground);
+  const styleScale = getStyleScale(options.style);
+  parts.push(`<g fill="${fillColor}" stroke="${fillColor}">`);
+
+  matrix.rows.forEach((row, y) => {
+    if (options.style === "pills") {
+      appendPillRowSvg(
+        parts,
+        row,
+        y,
+        moduleSize,
+        offset,
+        matrix.size,
+        styleScale,
+      );
+      return;
+    }
+
+    row.forEach((isDark, x) => {
+      if (!isDark) return;
+      const baseX = offset + x * moduleSize;
+      const baseY = offset + y * moduleSize;
+
+      if (isFinderModule(x, y, matrix.size)) {
+        parts.push(
+          `<rect x="${baseX}" y="${baseY}" width="${moduleSize}" height="${moduleSize}"/>`,
+        );
+        return;
+      }
+
+      switch (options.style) {
+        case "dots": {
+          const radius = (moduleSize * styleScale) / 2;
+          const cx = baseX + moduleSize / 2;
+          const cy = baseY + moduleSize / 2;
+          parts.push(`<circle cx="${cx}" cy="${cy}" r="${radius}"/>`);
+          break;
+        }
+        case "rounded": {
+          const size = moduleSize * styleScale;
+          const inset = (moduleSize - size) / 2;
           parts.push(
-            `<rect x="${drawX}" y="${drawY}" width="${side}" height="${side}" fill="none" stroke="${escapeAttribute(
-              options.foreground,
-            )}" stroke-width="${stroke}" rx="${stroke}"/>`,
+            `<rect x="${baseX + inset}" y="${baseY + inset}" width="${size}" height="${size}" rx="${
+              size * 0.35
+            }" ry="${size * 0.35}"/>`,
           );
-        });
-      });
-      break;
-    case "rounded":
-      matrix.rows.forEach((row, y) => {
-        row.forEach((isDark, x) => {
-          if (!isDark) return;
-          const drawX = offset + x * moduleSize;
-          const drawY = offset + y * moduleSize;
+          break;
+        }
+        case "outline": {
+          const size = moduleSize * styleScale;
+          const inset = (moduleSize - size) / 2;
+          const strokeWidth = Math.max(1, size * 0.3);
           parts.push(
-            `<rect x="${drawX}" y="${drawY}" width="${moduleSize}" height="${moduleSize}" rx="${moduleSize * 0.35}" ry="${moduleSize * 0.35}"/>`,
+            `<rect x="${baseX + inset}" y="${baseY + inset}" width="${size}" height="${size}" fill="none" stroke="${fillColor}" stroke-width="${strokeWidth}" rx="${strokeWidth / 1.5}"/>`,
           );
-        });
-      });
-      break;
-    default:
-      matrix.rows.forEach((row, y) => {
-        row.forEach((isDark, x) => {
-          if (!isDark) return;
-          const drawX = offset + x * moduleSize;
-          const drawY = offset + y * moduleSize;
+          break;
+        }
+        default: {
           parts.push(
-            `<rect x="${drawX}" y="${drawY}" width="${moduleSize}" height="${moduleSize}"/>`,
+            `<rect x="${baseX}" y="${baseY}" width="${moduleSize}" height="${moduleSize}"/>`,
           );
-        });
-      });
-      break;
-  }
+        }
+      }
+    });
+  });
   parts.push("</g>");
 
   if (options.logo?.dataUrl) {
@@ -325,12 +322,13 @@ function drawModules(
   options: QrRenderOptions,
 ) {
   const { moduleSize, offset } = computeModuleSize(matrix.size, options.size);
+  const styleScale = getStyleScale(options.style);
   ctx.fillStyle = options.foreground;
   ctx.strokeStyle = options.foreground;
 
   matrix.rows.forEach((row, y) => {
     if (options.style === "pills") {
-      drawPillRow(ctx, row, y, moduleSize, offset);
+      drawPillRow(ctx, row, y, moduleSize, offset, matrix.size, styleScale);
       return;
     }
 
@@ -339,23 +337,37 @@ function drawModules(
       const drawX = offset + x * moduleSize;
       const drawY = offset + y * moduleSize;
 
+      if (isFinderModule(x, y, matrix.size)) {
+        ctx.fillRect(drawX, drawY, moduleSize, moduleSize);
+        return;
+      }
+
       switch (options.style) {
         case "dots": {
-          const radius = moduleSize * 0.45;
+          const radius = (moduleSize * styleScale) / 2;
           ctx.beginPath();
           ctx.arc(drawX + moduleSize / 2, drawY + moduleSize / 2, radius, 0, Math.PI * 2);
           ctx.fill();
           break;
         }
         case "rounded": {
-          drawRoundedRect(ctx, drawX, drawY, moduleSize, moduleSize, moduleSize * 0.35);
+          const size = moduleSize * styleScale;
+          const inset = (moduleSize - size) / 2;
+          drawRoundedRect(
+            ctx,
+            drawX + inset,
+            drawY + inset,
+            size,
+            size,
+            size * 0.35,
+          );
           break;
         }
         case "outline": {
-          const inset = moduleSize * 0.15;
-          const side = moduleSize - inset * 2;
-          ctx.lineWidth = moduleSize * 0.25;
-          ctx.strokeRect(drawX + inset, drawY + inset, side, side);
+          const size = moduleSize * styleScale;
+          const inset = (moduleSize - size) / 2;
+          ctx.lineWidth = Math.max(1, size * 0.3);
+          ctx.strokeRect(drawX + inset, drawY + inset, size, size);
           break;
         }
         default: {
@@ -372,21 +384,120 @@ function drawPillRow(
   rowIndex: number,
   moduleSize: number,
   offset: number,
+  matrixSize: number,
+  styleScale: number,
 ) {
   let runStart = -1;
+  const verticalInset = (moduleSize - moduleSize * styleScale) / 2;
+  const horizontalInset = (moduleSize - moduleSize * styleScale) / 2;
+  const height = moduleSize * styleScale;
+
+  const flushRun = (runEnd: number) => {
+    const widthUnits = runEnd - runStart;
+    if (widthUnits <= 0) {
+      runStart = -1;
+      return;
+    }
+    const width =
+      widthUnits * moduleSize - horizontalInset * 2;
+    const drawX = offset + runStart * moduleSize + horizontalInset;
+    const drawY = offset + rowIndex * moduleSize + verticalInset;
+    drawRoundedRect(
+      ctx,
+      drawX,
+      drawY,
+      Math.max(width, moduleSize * 0.35),
+      height,
+      height / 2,
+    );
+    runStart = -1;
+  };
+
   row.forEach((isDark, x) => {
-    if (isDark && runStart === -1) {
-      runStart = x;
+    if (isDark && isFinderModule(x, rowIndex, matrixSize)) {
+      if (runStart !== -1) {
+        flushRun(x);
+      }
+      const drawX = offset + x * moduleSize;
+      const drawY = offset + rowIndex * moduleSize;
+      ctx.fillRect(drawX, drawY, moduleSize, moduleSize);
+      return;
     }
 
-    const isRowEnd = x === row.length - 1;
-    if ((!isDark || isRowEnd) && runStart !== -1) {
-      const runEnd = !isDark ? x : x + 1;
-      const width = (runEnd - runStart) * moduleSize;
-      const drawX = offset + runStart * moduleSize;
-      const drawY = offset + rowIndex * moduleSize;
-      drawRoundedRect(ctx, drawX, drawY, width, moduleSize, moduleSize / 2);
+    if (isDark) {
+      if (runStart === -1) {
+        runStart = x;
+      }
+      const isLast = x === row.length - 1;
+      if (isLast) {
+        flushRun(x + 1);
+      }
+      return;
+    }
+
+    if (!isDark && runStart !== -1) {
+      flushRun(x);
+    }
+  });
+}
+
+function appendPillRowSvg(
+  parts: string[],
+  row: boolean[],
+  rowIndex: number,
+  moduleSize: number,
+  offset: number,
+  matrixSize: number,
+  styleScale: number,
+) {
+  let runStart = -1;
+  const verticalInset = (moduleSize - moduleSize * styleScale) / 2;
+  const horizontalInset = (moduleSize - moduleSize * styleScale) / 2;
+  const height = moduleSize * styleScale;
+
+  const flushRun = (runEnd: number) => {
+    const widthUnits = runEnd - runStart;
+    if (widthUnits <= 0) {
       runStart = -1;
+      return;
+    }
+    const width =
+      widthUnits * moduleSize - horizontalInset * 2;
+    const drawX = offset + runStart * moduleSize + horizontalInset;
+    const drawY = offset + rowIndex * moduleSize + verticalInset;
+    const rx = height / 2;
+    parts.push(
+      `<rect x="${drawX}" y="${drawY}" width="${Math.max(width, moduleSize * 0.35)}" height="${height}" rx="${rx}" ry="${rx}"/>`,
+    );
+    runStart = -1;
+  };
+
+  row.forEach((isDark, x) => {
+    if (isDark && isFinderModule(x, rowIndex, matrixSize)) {
+      if (runStart !== -1) {
+        flushRun(x);
+      }
+      const baseX = offset + x * moduleSize;
+      const baseY = offset + rowIndex * moduleSize;
+      parts.push(
+        `<rect x="${baseX}" y="${baseY}" width="${moduleSize}" height="${moduleSize}"/>`,
+      );
+      return;
+    }
+
+    if (isDark) {
+      if (runStart === -1) {
+        runStart = x;
+      }
+      const isLast = x === row.length - 1;
+      if (isLast) {
+        flushRun(x + 1);
+      }
+      return;
+    }
+
+    if (!isDark && runStart !== -1) {
+      flushRun(x);
     }
   });
 }
@@ -464,6 +575,18 @@ function computeModuleSize(moduleCount: number, size: number) {
   const moduleSize = size / totalModules;
   const offset = moduleSize * QUIET_ZONE_MODULES;
   return { moduleSize, offset };
+}
+
+function isFinderModule(x: number, y: number, size: number) {
+  const inTop = y < 7;
+  const inBottom = y >= size - 7;
+  const inLeft = x < 7;
+  const inRight = x >= size - 7;
+  return (inTop && inLeft) || (inTop && inRight) || (inBottom && inLeft);
+}
+
+function getStyleScale(style: QrStyle) {
+  return STYLE_SCALE[style] ?? 1;
 }
 
 function escapeXml(value: string) {
