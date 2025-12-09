@@ -61,13 +61,13 @@ npm install -D typescript vite @vitejs/plugin-react-swc @types/react @types/reac
 
 ## Development
 
-Start the Vite dev server:
+Start the desktop-focused dev server (alias for `npm run dev`):
 
 ```bash
-npm run dev
+npm run desktop
 ```
 
-Then open the printed URL (usually `http://localhost:5173`). The UI already shows the fully wired controls + preview + download workflow.
+Then open the printed URL (usually `http://localhost:5173`). `npm run dev` remains available if you prefer the original command—the two scripts run the same Vite server.
 
 ---
 
