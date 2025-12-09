@@ -88,6 +88,7 @@ export async function renderQrToCanvas(
     ctx.fillRect(0, 0, options.size, canvasHeight);
   }
 
+  drawFinderPatterns(ctx, matrix.size, geometry, options);
   drawModules(ctx, matrix, options, geometry, logoClip);
   drawLogo(ctx, options, logoClip);
   drawLabel(ctx, labelLayout, options);
@@ -150,6 +151,7 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
   const fillColor = escapeAttribute(options.foreground);
   const styleScale = getStyleScale(options.style);
   parts.push(`<g fill="${fillColor}" stroke="${fillColor}">`);
+  appendFinderPatternsSvg(parts, matrix.size, geometry, options);
 
   matrix.rows.forEach((row, y) => {
     if (options.style === "pills") {
@@ -172,9 +174,6 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
       const baseY = offset + y * moduleSize;
 
       if (isFinderModule(x, y, matrix.size)) {
-        parts.push(
-          `<rect x="${baseX}" y="${baseY}" width="${moduleSize}" height="${moduleSize}"/>`,
-        );
         return;
       }
       if (
@@ -374,7 +373,6 @@ function drawModules(
       const rect = getAlignedRect(baseX, baseY, moduleSize);
 
       if (isFinderModule(x, y, matrix.size)) {
-        ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
         return;
       }
 
@@ -418,6 +416,82 @@ function drawModules(
   });
 }
 
+function drawFinderPatterns(
+  ctx: CanvasRenderingContext2D,
+  matrixSize: number,
+  geometry: { moduleSize: number; offset: number },
+  options: QrRenderOptions,
+) {
+  const { moduleSize, offset } = geometry;
+  const maxIndex = matrixSize - 7;
+  const positions: Array<[number, number]> = [
+    [offset, offset],
+    [offset + maxIndex * moduleSize, offset],
+    [offset, offset + maxIndex * moduleSize],
+  ];
+  positions.forEach(([x, y]) => {
+    drawFinderPattern(ctx, x, y, moduleSize, options);
+  });
+}
+
+function drawFinderPattern(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  moduleSize: number,
+  options: QrRenderOptions,
+) {
+  const outerSize = moduleSize * 7;
+  const middleSize = moduleSize * 5;
+  const centerSize = moduleSize * 3;
+  const radius = getFinderRadius(options.style, outerSize);
+
+  const outerRect = getAlignedRect(x, y, outerSize);
+  drawRoundedRect(
+    ctx,
+    outerRect.x,
+    outerRect.y,
+    outerRect.width,
+    outerRect.height,
+    radius,
+    options.foreground,
+  );
+
+  const middleRect = getAlignedRect(
+    x + moduleSize,
+    y + moduleSize,
+    middleSize,
+  );
+  if (options.transparentBackground) {
+    ctx.clearRect(middleRect.x, middleRect.y, middleRect.width, middleRect.height);
+  } else {
+    drawRoundedRect(
+      ctx,
+      middleRect.x,
+      middleRect.y,
+      middleRect.width,
+      middleRect.height,
+      Math.min(radius * 0.8, middleRect.width / 2),
+      options.background,
+    );
+  }
+
+  const centerRect = getAlignedRect(
+    x + moduleSize * 2,
+    y + moduleSize * 2,
+    centerSize,
+  );
+  drawRoundedRect(
+    ctx,
+    centerRect.x,
+    centerRect.y,
+    centerRect.width,
+    centerRect.height,
+    Math.min(radius * 0.6, centerRect.width / 2),
+    options.foreground,
+  );
+}
+
 function drawPillRow(
   ctx: CanvasRenderingContext2D,
   row: boolean[],
@@ -459,9 +533,6 @@ function drawPillRow(
       if (runStart !== -1) {
         flushRun(x);
       }
-      const drawX = offset + x * moduleSize;
-      const drawY = offset + rowIndex * moduleSize;
-      ctx.fillRect(drawX, drawY, moduleSize, moduleSize);
       return;
     }
 
@@ -491,6 +562,56 @@ function drawPillRow(
       flushRun(x);
     }
   });
+}
+
+function appendFinderPatternsSvg(
+  parts: string[],
+  matrixSize: number,
+  geometry: { moduleSize: number; offset: number },
+  options: QrRenderOptions,
+) {
+  const { moduleSize, offset } = geometry;
+  const maxIndex = matrixSize - 7;
+  const positions: Array<[number, number]> = [
+    [offset, offset],
+    [offset + maxIndex * moduleSize, offset],
+    [offset, offset + maxIndex * moduleSize],
+  ];
+  const foreground = escapeAttribute(options.foreground);
+  positions.forEach(([x, y]) => {
+    appendFinderPatternSvg(parts, x, y, moduleSize, options, foreground);
+  });
+}
+
+function appendFinderPatternSvg(
+  parts: string[],
+  x: number,
+  y: number,
+  moduleSize: number,
+  options: QrRenderOptions,
+  foreground: string,
+) {
+  const outerSize = moduleSize * 7;
+  const middleSize = moduleSize * 5;
+  const centerSize = moduleSize * 3;
+  const radius = getFinderRadius(options.style, outerSize);
+  const outerAttr = buildRadiusAttr(radius);
+  const middleAttr = buildRadiusAttr(Math.min(radius * 0.8, middleSize / 2));
+  const innerAttr = buildRadiusAttr(Math.min(radius * 0.6, centerSize / 2));
+
+  parts.push(
+    `<rect x="${x}" y="${y}" width="${outerSize}" height="${outerSize}" fill="${foreground}"${outerAttr}/>`,
+  );
+
+  if (!options.transparentBackground) {
+    parts.push(
+      `<rect x="${x + moduleSize}" y="${y + moduleSize}" width="${middleSize}" height="${middleSize}" fill="${escapeAttribute(options.background)}"${middleAttr}/>`,
+    );
+  }
+
+  parts.push(
+    `<rect x="${x + moduleSize * 2}" y="${y + moduleSize * 2}" width="${centerSize}" height="${centerSize}" fill="${foreground}"${innerAttr}/>`,
+  );
 }
 
 function appendPillRowSvg(
@@ -530,11 +651,6 @@ function appendPillRowSvg(
       if (runStart !== -1) {
         flushRun(x);
       }
-      const baseX = offset + x * moduleSize;
-      const baseY = offset + rowIndex * moduleSize;
-      parts.push(
-        `<rect x="${baseX}" y="${baseY}" width="${moduleSize}" height="${moduleSize}"/>`,
-      );
       return;
     }
 
@@ -625,7 +741,12 @@ function drawRoundedRect(
   width: number,
   height: number,
   radius: number,
+  fillStyle?: string,
 ) {
+  const previousFill = fillStyle !== undefined ? ctx.fillStyle : null;
+  if (fillStyle !== undefined) {
+    ctx.fillStyle = fillStyle;
+  }
   const r = Math.min(radius, width / 2, height / 2);
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -639,6 +760,9 @@ function drawRoundedRect(
   ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
   ctx.fill();
+  if (previousFill !== null) {
+    ctx.fillStyle = previousFill;
+  }
 }
 
 function computeModuleSize(moduleCount: number, size: number) {
@@ -716,6 +840,27 @@ function escapeXml(value: string) {
 
 function escapeAttribute(value: string) {
   return value.replace(/["']/g, (char) => (char === '"' ? "&quot;" : "&apos;"));
+}
+
+function buildRadiusAttr(radius: number) {
+  if (!radius || radius <= 0) {
+    return "";
+  }
+  const value = Number(radius.toFixed(2));
+  return ` rx="${value}" ry="${value}"`;
+}
+
+function getFinderRadius(style: QrStyle, size: number) {
+  switch (style) {
+    case "dots":
+      return size / 2;
+    case "rounded":
+      return size * 0.2;
+    case "pills":
+      return size * 0.25;
+    default:
+      return 0;
+  }
 }
 
 function getAlignedRect(x: number, y: number, size: number) {
