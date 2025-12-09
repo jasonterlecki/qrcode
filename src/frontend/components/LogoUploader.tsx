@@ -70,58 +70,64 @@ export function LogoUploader({
 
   return (
     <div className="logo-uploader">
-      <label className="field">
-        <span>Brand logo</span>
-        <input
-          type="file"
-          ref={inputRef}
-          accept={ACCEPTED_TYPES.join(",")}
-          onChange={handleFileChange}
-        />
-      </label>
+      <div className="logo-grid">
+        <div className="logo-grid__primary">
+          <label className="field">
+            <span>Brand logo</span>
+            <input
+              type="file"
+              ref={inputRef}
+              accept={ACCEPTED_TYPES.join(",")}
+              onChange={handleFileChange}
+            />
+          </label>
 
-      {error && <p className="hint hint--danger">{error}</p>}
+          {error && <p className="hint hint--danger">{error}</p>}
 
-      {logo ? (
-        <div className="logo-preview">
-          <img src={logo.dataUrl} alt="Uploaded logo preview" />
-          <div className="logo-preview__meta">
-            <p>{logo.fileName}</p>
-            <button
-              type="button"
-              onClick={handleRemove}
-              className="link-button"
-            >
-              Remove logo
-            </button>
-          </div>
+          {logo ? (
+            <div className="logo-preview">
+              <img src={logo.dataUrl} alt="Uploaded logo preview" />
+              <div className="logo-preview__meta">
+                <p>{logo.fileName}</p>
+                <button
+                  type="button"
+                  onClick={handleRemove}
+                  className="link-button"
+                >
+                  Remove logo
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="hint">Upload a logo to unlock sizing options.</p>
+          )}
         </div>
-      ) : (
-        <p className="hint">Upload a logo to unlock sizing options.</p>
-      )}
 
-      <label className="field">
-        <span>Logo size ({size}%)</span>
-        <input
-          type="range"
-          min={10}
-          max={40}
-          step={1}
-          value={size}
-          disabled={!logo}
-          onChange={(event) => onSizeChange(Number(event.target.value))}
-        />
-      </label>
+        <div className="logo-grid__secondary">
+          <label className="field">
+            <span>Logo size ({size}%)</span>
+            <input
+              type="range"
+              min={10}
+              max={40}
+              step={1}
+              value={size}
+              disabled={!logo}
+              onChange={(event) => onSizeChange(Number(event.target.value))}
+            />
+          </label>
 
-      <label className="field field--checkbox">
-        <input
-          type="checkbox"
-          checked={safeZone}
-          disabled={!logo}
-          onChange={(event) => onSafeZoneChange(event.target.checked)}
-        />
-        <span>Keep a white safe zone behind the logo</span>
-      </label>
+          <label className="field field--checkbox">
+            <input
+              type="checkbox"
+              checked={safeZone}
+              disabled={!logo}
+              onChange={(event) => onSafeZoneChange(event.target.checked)}
+            />
+            <span>Keep a white safe zone behind the logo</span>
+          </label>
+        </div>
+      </div>
     </div>
   );
 }

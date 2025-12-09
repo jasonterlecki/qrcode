@@ -351,7 +351,7 @@ export function ControlsPanel({
           </p>
         </div>
 
-        <div className="controls-card">
+        <div className="controls-card controls-card--wide">
           <SectionHeading icon={ImageIcon} text="Logo" />
           <p className="hint">
             Upload a PNG/JPEG/SVG/WEBP up to 4&nbsp;MB. Adjust the size slider
