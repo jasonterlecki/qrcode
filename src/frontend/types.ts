@@ -111,3 +111,21 @@ export interface DownloadFormat {
   mime: string;
   supportsTransparency: boolean;
 }
+
+export interface ThemePreset {
+  id: string;
+  name: string;
+  description: string;
+  preview: [string, string];
+  style: QrStyle;
+  foreground: string;
+  background: string;
+  labelInvert?: boolean;
+  transparentBackground?: boolean;
+}
+
+export interface DesignPresetFile {
+  version: number;
+  design: QrDesignState;
+  logo?: LogoSettings;
+}

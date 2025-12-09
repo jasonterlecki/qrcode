@@ -1,0 +1,51 @@
+import type { ThemePreset } from "../types";
+
+export const THEME_PRESETS: ThemePreset[] = [
+  {
+    id: "monochrome",
+    name: "Monochrome",
+    description: "High-contrast black + white classic blocks.",
+    preview: ["#111111", "#ffffff"],
+    style: "classic",
+    foreground: "#111111",
+    background: "#ffffff",
+  },
+  {
+    id: "midnight",
+    name: "Midnight Neon",
+    description: "Rounded modules with vibrant blue accents.",
+    preview: ["#38bdf8", "#020617"],
+    style: "rounded",
+    foreground: "#38bdf8",
+    background: "#020617",
+    labelInvert: true,
+  },
+  {
+    id: "citrus",
+    name: "Citrus Pop",
+    description: "Dots with warm yellow on soft cream.",
+    preview: ["#f97316", "#fff7ed"],
+    style: "dots",
+    foreground: "#f97316",
+    background: "#fff7ed",
+  },
+  {
+    id: "forest",
+    name: "Forest Fade",
+    description: "Pills in deep green on mist background.",
+    preview: ["#065f46", "#ecfdf5"],
+    style: "pills",
+    foreground: "#065f46",
+    background: "#ecfdf5",
+  },
+  {
+    id: "onyx",
+    name: "Onyx Outline",
+    description: "Outline modules with inverted label.",
+    preview: ["#0f172a", "#f1f5f9"],
+    style: "outline",
+    foreground: "#0f172a",
+    background: "#f1f5f9",
+    labelInvert: true,
+  },
+];

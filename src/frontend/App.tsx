@@ -7,6 +7,8 @@ import type {
   LogoSettings,
   QrContentState,
   QrDesignState,
+  ThemePreset,
+  DesignPresetFile,
 } from "./types";
 import { getContrastRatio } from "./lib/color";
 import { buildContentPayload } from "./lib/content";
@@ -79,6 +81,7 @@ export default function App() {
   const [design, setDesign] = useState<QrDesignState>(initialDesign);
   const [logoSettings, setLogoSettings] = useState<LogoSettings>(initialLogo);
   const debugEnabled = import.meta.env.VITE_DEBUG_UI === "true";
+  const [activeThemeId, setActiveThemeId] = useState<string | null>(null);
 
   const contentPayload = useMemo(
     () => buildContentPayload(design.contentType, design.content),
@@ -112,6 +115,30 @@ export default function App() {
 
   const handleLogoAssetChange = (asset: LogoAsset | null) => {
     setLogoSettings((prev) => ({ ...prev, asset }));
+  };
+
+  const handleThemeApply = (theme: ThemePreset) => {
+    setDesign((prev) => ({
+      ...prev,
+      style: theme.style,
+      foreground: theme.foreground,
+      background: theme.background,
+      transparentBackground: Boolean(theme.transparentBackground),
+      label: {
+        ...prev.label,
+        invert: theme.labelInvert ?? prev.label.invert,
+      },
+    }));
+    setActiveThemeId(theme.id);
+  };
+
+  const handlePresetImport = (payload: DesignPresetFile) => {
+    const merged = mergeDesignPayload(payload.design);
+    setDesign(merged);
+    if (payload.logo) {
+      setLogoSettings(payload.logo);
+    }
+    setActiveThemeId(null);
   };
 
   const setSimpleContent = (key: "url" | "text", value: string) => {
@@ -162,6 +189,9 @@ export default function App() {
           contentStatus={contentPayload}
           contrastRatio={contrastRatio}
           logoSettings={logoSettings}
+          activeThemeId={activeThemeId}
+          onApplyTheme={handleThemeApply}
+          onPresetImport={handlePresetImport}
           onContentTypeChange={(value) =>
             setDesign((prev) => ({
               ...prev,
@@ -222,6 +252,7 @@ export default function App() {
           contentReady={contentReady}
           contentMessage={contentPayload.message}
           qrValue={contentPayload.value}
+          contentSummary={contentPayload.summary}
           warnings={contrastWarnings}
         />
       </main>
@@ -244,4 +275,46 @@ export default function App() {
       )}
     </div>
   );
+}
+
+function mergeDesignPayload(payload: QrDesignState): QrDesignState {
+  const safeContent: QrContentState = {
+    ...initialDesign.content,
+    ...(payload.content || {}),
+    wifi: {
+      ...initialDesign.content.wifi,
+      ...(payload.content?.wifi || {}),
+    },
+    vcard: {
+      ...initialDesign.content.vcard,
+      ...(payload.content?.vcard || {}),
+    },
+    phone: {
+      ...initialDesign.content.phone,
+      ...(payload.content?.phone || {}),
+    },
+    sms: {
+      ...initialDesign.content.sms,
+      ...(payload.content?.sms || {}),
+    },
+    social: {
+      ...initialDesign.content.social,
+      ...(payload.content?.social || {}),
+    },
+    payment: {
+      ...initialDesign.content.payment,
+      ...(payload.content?.payment || {}),
+    },
+  };
+
+  return {
+    ...initialDesign,
+    ...payload,
+    contentType: payload.contentType ?? initialDesign.contentType,
+    content: safeContent,
+    label: {
+      ...initialDesign.label,
+      ...(payload.label || {}),
+    },
+  };
 }

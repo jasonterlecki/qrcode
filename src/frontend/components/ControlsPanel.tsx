@@ -1,3 +1,5 @@
+import { useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import type {
   LabelOptions,
   LabelSize,
@@ -12,17 +14,24 @@ import type {
   SocialPlatform,
   VcardContent,
   WifiContent,
+  ThemePreset,
+  DesignPresetFile,
 } from "../types";
 import type { LucideIcon } from "lucide-react";
 import type { ContentPayload } from "../lib/content";
 import { LogoUploader } from "./LogoUploader";
 import {
+  DownloadCloud,
   ImageIcon,
+  Package,
   Palette,
   QrCode,
+  Sparkles,
   Shapes,
   Type as TypeIcon,
+  UploadCloud,
 } from "lucide-react";
+import { THEME_PRESETS } from "../lib/themes";
 
 const QR_STYLES = [
   { id: "classic", label: "Classic" },
@@ -68,6 +77,9 @@ interface ControlsPanelProps {
   contentStatus: ContentPayload;
   contrastRatio: number;
   logoSettings: LogoSettings;
+  activeThemeId: string | null;
+  onApplyTheme: (theme: ThemePreset) => void;
+  onPresetImport: (preset: DesignPresetFile) => void;
   onContentTypeChange: (value: QrContentType) => void;
   onUrlChange: (value: string) => void;
   onTextChange: (value: string) => void;
@@ -92,6 +104,9 @@ export function ControlsPanel({
   contentStatus,
   contrastRatio,
   logoSettings,
+  activeThemeId,
+  onApplyTheme,
+  onPresetImport,
   onContentTypeChange,
   onUrlChange,
   onTextChange,
@@ -111,10 +126,94 @@ export function ControlsPanel({
   onLogoSafeZoneChange,
 }: ControlsPanelProps) {
   const ratioLabel = contrastRatio.toFixed(2);
+  const presetInputRef = useRef<HTMLInputElement | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleExportPreset = () => {
+    const payload: DesignPresetFile = {
+      version: 1,
+      design,
+      logo: logoSettings,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    triggerJsonDownload(blob, "qr-crafter-preset.json");
+  };
+
+  const handleImportClick = () => {
+    presetInputRef.current?.click();
+  };
+
+  const handlePresetFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result as string) as DesignPresetFile;
+        if (!parsed.design) {
+          throw new Error("Design missing");
+        }
+        onPresetImport(parsed);
+        setImportError(null);
+      } catch (error) {
+        setImportError("Invalid preset file. Please select a file exported by QR Crafter.");
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = "";
+  };
 
   return (
     <section className="panel panel--controls">
       <h2>Controls</h2>
+      <input
+        ref={presetInputRef}
+        type="file"
+        accept="application/json"
+        hidden
+        onChange={handlePresetFileChange}
+      />
+
+      <SectionHeading icon={Sparkles} text="Theme presets" />
+      <div className="theme-grid">
+        {THEME_PRESETS.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            className={`theme-card ${
+              activeThemeId === preset.id ? "theme-card--active" : ""
+            }`}
+            onClick={() => onApplyTheme(preset)}
+          >
+            <div className="theme-card__swatch">
+              <span style={{ background: preset.foreground }} />
+              <span style={{ background: preset.background }} />
+            </div>
+            <div className="theme-card__body">
+              <strong>{preset.name}</strong>
+              <p>{preset.description}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <SectionHeading icon={Package} text="Presets & sharing" />
+      <div className="preset-actions">
+        <button type="button" onClick={handleExportPreset}>
+          <DownloadCloud size={16} />
+          Export preset
+        </button>
+        <button type="button" onClick={handleImportClick}>
+          <UploadCloud size={16} />
+          Import preset
+        </button>
+      </div>
+      {importError && <p className="hint hint--danger">{importError}</p>}
+      <p className="hint">
+        Presets capture colors, styles, content, and logo settings for quick reuse.
+      </p>
 
       <SectionHeading icon={QrCode} text="Content type" />
       <div className="style-grid">
@@ -656,6 +755,15 @@ function renderContentFields(
       </label>
     </div>
   );
+}
+
+function triggerJsonDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 interface SectionHeadingProps {

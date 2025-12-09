@@ -152,6 +152,73 @@ body {
   gap: 0.5rem;
 }
 
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.theme-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 0.85rem;
+  display: flex;
+  gap: 0.85rem;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.theme-card__swatch {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.theme-card__swatch span {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.theme-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.9rem;
+}
+
+.theme-card__body p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.85rem;
+}
+
+.theme-card--active {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+
+.preset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.preset-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 0.35rem 0.9rem;
+  background: #f8fafc;
+  cursor: pointer;
+  font-weight: 600;
+}
+
 .section-heading {
   display: flex;
   align-items: center;
@@ -302,6 +369,22 @@ body {
 .download-button__icon {
   display: inline-flex;
   align-items: center;
+}
+
+.batch-tools {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.batch-tools textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  font-family: inherit;
+  resize: vertical;
 }
 
 .debug-panel {

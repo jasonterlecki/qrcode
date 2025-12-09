@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import JSZip from "jszip";
 import type { DownloadFormat, LogoSettings, QrDesignState } from "../types";
 import { useLogoImage } from "../hooks/useLogoImage";
 import {
@@ -6,7 +7,7 @@ import {
   exportSvgMarkup,
   renderQrToCanvas,
 } from "../lib/qrRenderer";
-import { Download } from "lucide-react";
+import { Archive, Download } from "lucide-react";
 
 const PREVIEW_SIZE = 360;
 const EXPORT_SIZE = 1024;
@@ -24,6 +25,7 @@ interface QrPreviewProps {
   contentReady: boolean;
   contentMessage?: string;
   qrValue: string;
+  contentSummary: string;
   warnings: string[];
 }
 
@@ -33,12 +35,16 @@ export function QrPreview({
   contentReady,
   contentMessage,
   qrValue,
+  contentSummary,
   warnings,
 }: QrPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [batchInput, setBatchInput] = useState("");
+  const [isBatching, setIsBatching] = useState(false);
+  const [batchMessage, setBatchMessage] = useState<string | null>(null);
   const { image: logoImage, status: logoStatus } = useLogoImage(
     logo.asset?.dataUrl,
   );
@@ -80,6 +86,10 @@ export function QrPreview({
     logo.safeZone,
     logoImage,
   ]);
+  const summarySlug = useMemo(
+    () => createSlug(contentSummary || "qr"),
+    [contentSummary],
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -130,13 +140,25 @@ export function QrPreview({
           ...baseOptions,
           size: EXPORT_SIZE,
         });
-        triggerDownload(svgMarkup, format.mime, format.id, design.style);
+        triggerDownload(
+          svgMarkup,
+          format.mime,
+          format.id,
+          design.style,
+          summarySlug,
+        );
       } else {
         const blob = await exportRasterImage(format.id, {
           ...baseOptions,
           size: EXPORT_SIZE,
         });
-        triggerBlobDownload(blob, format.mime, format.id, design.style);
+        triggerBlobDownload(
+          blob,
+          format.mime,
+          format.id,
+          design.style,
+          summarySlug,
+        );
       }
     } catch (error) {
       setRenderError(
@@ -166,6 +188,52 @@ export function QrPreview({
       "JPEG does not support transparency. We'll fall back to a solid background.",
     );
   }
+
+  const handleBatchGenerate = async () => {
+    if (design.contentType !== "url") {
+      setBatchMessage("Batch generation currently supports URL content only.");
+      return;
+    }
+    const jobs = parseBatchInput(batchInput);
+    if (jobs.length === 0) {
+      setBatchMessage("Add at least one URL or CSV row.");
+      return;
+    }
+    setIsBatching(true);
+    setBatchMessage("Preparing ZIP...");
+    try {
+      const zip = new JSZip();
+      for (const job of jobs) {
+        const jobLabel =
+          job.label !== undefined
+            ? { ...design.label, text: job.label }
+            : baseOptions.label;
+        const labelPayload =
+          jobLabel && jobLabel.text.trim() ? jobLabel : undefined;
+        const blob = await exportRasterImage("png", {
+          ...baseOptions,
+          text: job.url,
+          label: labelPayload,
+          size: EXPORT_SIZE,
+        });
+        zip.file(
+          buildFilename("png", design.style, job.slug),
+          blob,
+        );
+      }
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      triggerZipDownload(zipBlob);
+      setBatchMessage(`Generated ${jobs.length} PNGs.`);
+    } catch (error) {
+      setBatchMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to generate the requested batch.",
+      );
+    } finally {
+      setIsBatching(false);
+    }
+  };
 
   return (
     <section className="panel panel--preview">
@@ -218,6 +286,39 @@ export function QrPreview({
           </button>
         ))}
       </div>
+
+      {design.contentType === "url" && (
+        <div className="batch-tools">
+          <div className="section-heading">
+            <Archive size={18} />
+            <span>Batch URLs (CSV or list)</span>
+          </div>
+          <textarea
+            rows={4}
+            placeholder="One URL per line, or CSV rows formatted as Label,URL"
+            value={batchInput}
+            onChange={(event) => setBatchInput(event.target.value)}
+          />
+          <p className="hint">
+            We'll generate PNG files using the current design. CSV rows let you
+            attach a caption per URL.
+          </p>
+          <button
+            type="button"
+            className="download-button"
+            disabled={
+              isBatching ||
+              !batchInput.trim() ||
+              !contentReady ||
+              design.contentType !== "url"
+            }
+            onClick={handleBatchGenerate}
+          >
+            {isBatching ? "Preparing ZIP..." : "Generate PNG ZIP"}
+          </button>
+          {batchMessage && <p className="hint">{batchMessage}</p>}
+        </div>
+      )}
     </section>
   );
 }
@@ -227,9 +328,10 @@ function triggerDownload(
   mime: string,
   formatId: string,
   style: string,
+  slug: string,
 ) {
   const blob = new Blob([content], { type: mime });
-  triggerBlobDownload(blob, mime, formatId, style);
+  triggerBlobDownload(blob, mime, formatId, style, slug);
 }
 
 function triggerBlobDownload(
@@ -237,16 +339,26 @@ function triggerBlobDownload(
   mime: string,
   formatId: string,
   style: string,
+  slug: string,
 ) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = buildFilename(formatId, style);
+  anchor.download = buildFilename(formatId, style, slug);
   anchor.click();
   URL.revokeObjectURL(url);
 }
 
-function buildFilename(formatId: string, style: string) {
+function triggerZipDownload(blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = buildBatchZipName();
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function buildFilename(formatId: string, style: string, slug: string) {
   const now = new Date();
   const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(
     2,
@@ -256,5 +368,76 @@ function buildFilename(formatId: string, style: string) {
   ).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(
     now.getSeconds(),
   ).padStart(2, "0")}`;
-  return `qr-crafter-${style}-${timestamp}.${formatId}`;
+  return `qr-${slug}-${style}-${timestamp}.${formatId}`;
+}
+
+function buildBatchZipName() {
+  const now = new Date();
+  const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(
+    2,
+    "0",
+  )}${String(now.getDate()).padStart(2, "0")}-${String(
+    now.getHours(),
+  ).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(
+    now.getSeconds(),
+  ).padStart(2, "0")}`;
+  return `qr-crafter-batch-${timestamp}.zip`;
+}
+
+function parseBatchInput(raw: string) {
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const jobs: Array<{ url: string; label?: string; slug: string }> = [];
+  lines.forEach((line) => {
+    let label: string | undefined;
+    let urlCandidate = line;
+    const csvParts = line.split(",");
+    if (csvParts.length > 1) {
+      label = csvParts[0].trim();
+      urlCandidate = csvParts.slice(1).join(",").trim();
+    }
+    const normalized = normalizeUrl(urlCandidate);
+    if (!normalized) return;
+    const labelText = label && label.length > 0 ? label : undefined;
+    const slugSource =
+      labelText || tryGetHost(normalized) || normalized;
+    jobs.push({
+      url: normalized,
+      label: labelText,
+      slug: createSlug(slugSource),
+    });
+  });
+  return jobs;
+}
+
+function normalizeUrl(input: string) {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  const candidate = /^[a-zA-Z]+:\/\//.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+  try {
+    return new URL(candidate).toString();
+  } catch {
+    return null;
+  }
+}
+
+function tryGetHost(value: string) {
+  try {
+    return new URL(value).hostname;
+  } catch {
+    return "";
+  }
+}
+
+function createSlug(value: string, fallback = "qr") {
+  const slug = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40);
+  return slug || fallback;
 }

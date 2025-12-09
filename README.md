@@ -12,10 +12,12 @@ Create **polished, branded QR codes** with multiple visual styles, logo upload, 
 - Multiple content options: destination URL, plain text notes, Wi-Fi credentials (with SSID/security/hidden toggles), vCard contact cards, phone calls, SMS presets, social profile links, and payment links—each with contextual validation and formatting.
 - Style selector: **Classic**, **Rounded**, **Dots**, **Pills**, **Outline** rendered through a custom drawing pipeline.
 - Foreground/background color pickers with contrast warnings plus a transparent background toggle (PNG/WEBP/SVG only).
+- Curated **theme presets** plus full preset import/export so you can snapshot or share a design (content + colors + logo) as JSON.
 - Client-side logo upload (PNG/JPEG/WEBP/SVG, ≤ 4 MB) with a size slider and optional white safe zone.
 - Optional label beneath the QR code (multi-line, adjustable size/weight/alignment) that auto-scales with the QR size and sits just below the matrix; a “reverse colors” toggle keeps captions readable on any palette and carries through to every export.
 - Live preview that updates instantly and surfaces warnings when scannability might degrade.
-- Download buttons for **JPEG**, **PNG**, **SVG**, and **WEBP** with timestamped filenames and transparency handling.
+- Batch URL generation (CSV or newline separated) that exports a ZIP of PNGs using the current design with optional per-row captions.
+- Download buttons for **JPEG**, **PNG**, **SVG**, and **WEBP** with content-aware filenames (URL host, Wi-Fi SSID, phone number, etc.) plus transparency handling.
 
 ---
 
@@ -53,7 +55,7 @@ npm install
 Current dependencies include:
 
 ```bash
-npm install react react-dom qrcode
+npm install react react-dom qrcode lucide-react jszip
 npm install -D typescript vite @vitejs/plugin-react-swc @types/react @types/react-dom
 ```
 
@@ -99,12 +101,14 @@ If/when an Express backend is added to serve the compiled frontend, document the
 
 1. Launch the dev server and open the app.
 2. Pick a **content type** (URL, Text, Wi-Fi, vCard, Phone, SMS, Social, Payment) and fill out the contextual form. The preview only renders—and downloads only enable—when the required fields are valid (e.g., SSID + password for secured Wi-Fi, a full name for vCards, a phone number for tel/SMS, or a payment link).
-3. Choose a QR style (Classic, Rounded, Dots, Pills, Outline).
-4. Pick foreground/background colors and optionally enable a transparent background.
-5. Upload a brand logo (PNG/JPEG/WEBP/SVG up to 4 MB). Adjust the size slider and toggle the white safe zone for better scannability.
-6. Add an optional label, selecting its size, weight, alignment, and (optionally) flipping its colors against the QR palette. The label automatically scales with the QR resolution and stays tucked right under the code in both preview and downloads.
-7. Watch the preview update automatically and review any warnings.
-8. Download the QR as JPEG, PNG, SVG, or WEBP. Transparency applies to PNG/WEBP/SVG; JPEG always uses a solid background.
+3. (Optional) Apply one of the theme presets or import a saved design JSON to instantly load styles, content, and logo settings. You can also export the current setup at any time.
+4. Choose a QR style (Classic, Rounded, Dots, Pills, Outline).
+5. Pick foreground/background colors and optionally enable a transparent background.
+6. Upload a brand logo (PNG/JPEG/WEBP/SVG up to 4 MB). Adjust the size slider and toggle the white safe zone for better scannability.
+7. Add an optional label, selecting its size, weight, alignment, and (optionally) flipping its colors against the QR palette. The label automatically scales with the QR resolution and stays tucked right under the code in both preview and downloads.
+8. Watch the preview update automatically and review any warnings.
+9. Download the QR as JPEG, PNG, SVG, or WEBP. Transparency applies to PNG/WEBP/SVG; JPEG always uses a solid background.
+10. (Optional) For URL content, paste a newline list or CSV (Label,URL) into the batch tool to create a ZIP of PNGs in one click.
 
 ---
 
@@ -159,3 +163,18 @@ Never skip this step when collaborating with the CODEX agent.
 ## License
 
 Specify your preferred license here (MIT, proprietary, etc.).
+- **Preset themes & JSON design files**
+
+  - Apply curated palettes/styles with a single click.
+  - Export the current design as `qr-crafter-preset.json`, share it, and import it later. Each file captures the full QR content, color choices, label settings, and logo metadata.
+
+- **Batch URL generation**
+
+  - Available when the content type is URL.
+  - Accepts newline lists (`https://one.com`) or CSV rows (`Promo A,https://one.com`) where the label column overrides the QR caption per image.
+  - Generates a ZIP of PNGs using the current design, including logos/labels, with filenames derived from the provided label, host, or URL slug.
+
+- **Smart filenames**
+
+  - Every download uses the underlying content summary to build a slug (e.g., Wi-Fi SSID, phone number, payment payee, or URL host) followed by the selected style and timestamp.
+  - Batch exports inherit the per-row slug/label so large jobs stay organized.
