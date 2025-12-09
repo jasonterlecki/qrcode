@@ -74,6 +74,7 @@ export function QrPreview({
     design.label.size,
     design.label.weight,
     design.label.align,
+    design.label.invert,
     logo.asset?.dataUrl,
     logo.size,
     logo.safeZone,

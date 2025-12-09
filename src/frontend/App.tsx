@@ -102,7 +102,11 @@ export default function App() {
   const handleLabelChange = (partial: Partial<LabelOptions>) => {
     setDesign((prev) => ({
       ...prev,
-      label: { ...prev.label, ...partial },
+      label: {
+        ...prev.label,
+        size: partial.size ?? prev.label.size ?? "md",
+        ...partial,
+      },
     }));
   };
 

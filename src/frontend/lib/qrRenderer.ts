@@ -772,10 +772,10 @@ function drawLabel(
     return;
   }
 
-  const paddingX = 12;
-  const paddingY = 6;
+  const paddingX = 16;
+  const paddingY = 10;
   const paddingOffset = 18;
-  const baseY = options.size + 4;
+  const baseY = options.size + Math.max(4, Math.round(layout.lineHeight * 0.5));
   const labelOptions = options.label;
   const textColor = labelOptions.invert
     ? options.background
@@ -787,7 +787,10 @@ function drawLabel(
   const anchorX = computeLabelX(options.size, paddingOffset, labelOptions.align);
   layout.lines.forEach((line, index) => {
     const lineWidth = layout.lineWidths[index] ?? layout.contentWidth;
-    const lineY = baseY + index * layout.lineHeight;
+    const lineY =
+      baseY +
+      index * layout.lineHeight +
+      (labelOptions.invert ? paddingY / 2 : 0);
 
     if (labelOptions.invert) {
       const rectWidth = lineWidth + paddingX * 2;
@@ -801,10 +804,10 @@ function drawLabel(
       drawRoundedRect(
         ctx,
         rectX,
-        lineY - paddingY / 2,
+        lineY - paddingY,
         rectWidth,
         rectHeight,
-        rectHeight * 0.35,
+        rectHeight * 0.4,
         options.foreground,
       );
     }
