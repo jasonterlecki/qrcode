@@ -93,7 +93,7 @@ export async function renderQrToCanvas(
   drawFinderPatterns(ctx, matrix.size, geometry, options);
   drawModules(ctx, matrix, options, geometry, logoClip);
   drawLogo(ctx, options, logoClip);
-  drawLabel(ctx, labelLayout, options);
+  drawLabel(ctx, labelLayout, options, geometry, matrix.size);
 }
 
 export async function exportRasterImage(
@@ -134,7 +134,6 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
   const geometry = computeModuleSize(matrix.size, options.size);
   const logoClip = computeLogoClip(matrix.size, geometry.moduleSize, options);
   const { moduleSize, offset } = geometry;
-  const labelStart = options.size;
   const totalHeight = options.size + labelLayout.height;
   const parts: string[] = [];
 
@@ -240,9 +239,18 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
   const labelOptions = options.label;
   if (labelLayout.lines.length > 0 && labelOptions) {
     const padding = 18;
-    const paddingX = 10;
-    const paddingY = 4;
-    const textY = labelStart + 12;
+    const paddingX = Math.max(
+      10,
+      Math.round(labelLayout.lineHeight * 0.55),
+    );
+    const paddingY = Math.max(
+      6,
+      Math.round(labelLayout.lineHeight * 0.2),
+    );
+    const qrBottom =
+      geometry.offset + geometry.moduleSize * matrix.size;
+    const baseY =
+      qrBottom - Math.max(4, Math.round(labelLayout.lineHeight * 0.25));
     const textAnchor = mapLabelAlign(labelOptions.align);
     const textColor = escapeAttribute(
       labelOptions.invert ? options.background : options.foreground,
@@ -250,13 +258,13 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
     const backgroundColor = escapeAttribute(options.foreground);
 
     labelLayout.lines.forEach((line, index) => {
-      const y = textY + index * labelLayout.lineHeight;
+      const y = baseY + index * labelLayout.lineHeight;
       const x = computeLabelX(options.size, padding, labelOptions.align);
       const lineWidth = labelLayout.lineWidths[index] ?? labelLayout.contentWidth;
 
       if (labelOptions.invert) {
         const rectWidth = lineWidth + paddingX * 2;
-        const rectHeight = labelLayout.lineHeight;
+        const rectHeight = labelLayout.lineHeight + paddingY;
         const rectX = computeLabelRectX(
           x,
           rectWidth,
@@ -264,7 +272,7 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
           labelOptions.align,
         );
         parts.push(
-          `<rect x="${rectX}" y="${y - paddingY / 2}" width="${rectWidth}" height="${rectHeight}" fill="${backgroundColor}"${buildRadiusAttr(rectHeight * 0.3)}/>`,
+          `<rect x="${rectX}" y="${y - paddingY / 2}" width="${rectWidth}" height="${rectHeight}" fill="${backgroundColor}"${buildRadiusAttr(rectHeight * 0.4)}/>`,
         );
       }
 
@@ -769,6 +777,8 @@ function drawLabel(
   ctx: CanvasRenderingContext2D,
   layout: LabelLayout,
   options: QrRenderOptions,
+  geometry: { moduleSize: number; offset: number },
+  matrixSize: number,
 ) {
   if (!options.label || layout.lines.length === 0) {
     return;
@@ -777,7 +787,9 @@ function drawLabel(
   const paddingX = Math.max(10, Math.round(layout.lineHeight * 0.55));
   const paddingY = Math.max(6, Math.round(layout.lineHeight * 0.2));
   const paddingOffset = 18;
-  const baseY = options.size - Math.max(2, Math.round(layout.lineHeight * 0.15));
+  const qrBottom =
+    geometry.offset + geometry.moduleSize * matrixSize;
+  const baseY = qrBottom - Math.max(4, Math.round(layout.lineHeight * 0.25));
   const labelOptions = options.label;
   const textColor = labelOptions.invert
     ? options.background
