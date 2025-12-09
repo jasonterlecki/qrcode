@@ -258,7 +258,8 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
     const backgroundColor = escapeAttribute(options.foreground);
 
     labelLayout.lines.forEach((line, index) => {
-      const y = baseY + index * labelLayout.lineHeight;
+      const lineTop = baseY + index * labelLayout.lineHeight;
+      const lineCenter = lineTop + labelLayout.lineHeight / 2;
       const x = computeLabelX(options.size, padding, labelOptions.align);
       const lineWidth = labelLayout.lineWidths[index] ?? labelLayout.contentWidth;
 
@@ -272,14 +273,14 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
           labelOptions.align,
         );
         parts.push(
-          `<rect x="${rectX}" y="${y - paddingY / 2}" width="${rectWidth}" height="${rectHeight}" fill="${backgroundColor}"${buildRadiusAttr(rectHeight * 0.4)}/>`,
+          `<rect x="${rectX}" y="${lineTop - paddingY / 2}" width="${rectWidth}" height="${rectHeight}" fill="${backgroundColor}"${buildRadiusAttr(rectHeight * 0.4)}/>`,
         );
       }
 
       parts.push(
-        `<text x="${x}" y="${y}" font-family="Inter, 'Segoe UI', sans-serif" font-size="${LABEL_FONT_SCALE[labelOptions.size] * options.size}" font-weight="${
+        `<text x="${x}" y="${lineCenter}" font-family="Inter, 'Segoe UI', sans-serif" font-size="${LABEL_FONT_SCALE[labelOptions.size] * options.size}" font-weight="${
           labelOptions.weight === "bold" ? 700 : 500
-        }" text-anchor="${textAnchor}" fill="${textColor}">${escapeXml(line)}</text>`,
+        }" text-anchor="${textAnchor}" dominant-baseline="middle" fill="${textColor}">${escapeXml(line)}</text>`,
       );
     });
   }
@@ -795,13 +796,14 @@ function drawLabel(
     ? options.background
     : options.foreground;
   ctx.font = layout.font;
-  ctx.textBaseline = "top";
+  ctx.textBaseline = "middle";
   ctx.textAlign = labelOptions.align as CanvasTextAlign;
 
   const anchorX = computeLabelX(options.size, paddingOffset, labelOptions.align);
   layout.lines.forEach((line, index) => {
     const lineWidth = layout.lineWidths[index] ?? layout.contentWidth;
-    const lineY = baseY + index * layout.lineHeight;
+    const lineTop = baseY + index * layout.lineHeight;
+    const lineCenter = lineTop + layout.lineHeight / 2;
 
     if (labelOptions.invert) {
       const rectWidth = lineWidth + paddingX * 2;
@@ -815,7 +817,7 @@ function drawLabel(
       drawRoundedRect(
         ctx,
         rectX,
-        lineY - paddingY / 2,
+        lineTop - paddingY / 2,
         rectWidth,
         rectHeight,
         rectHeight * 0.45,
@@ -824,7 +826,7 @@ function drawLabel(
     }
 
     ctx.fillStyle = textColor;
-    ctx.fillText(line, anchorX, lineY);
+    ctx.fillText(line, anchorX, lineCenter);
   });
 }
 
