@@ -265,6 +265,7 @@ body {
   background: #fff;
   border-radius: 1rem;
   border: 1px dashed rgba(15, 23, 42, 0.12);
+  image-rendering: pixelated;
 }
 
 .downloads {

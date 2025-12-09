@@ -136,7 +136,7 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
   const parts: string[] = [];
 
   parts.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${options.size}" height="${totalHeight}" viewBox="0 0 ${options.size} ${totalHeight}" role="img" aria-label="QR code">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${options.size}" height="${totalHeight}" viewBox="0 0 ${options.size} ${totalHeight}" role="img" aria-label="QR code" shape-rendering="crispEdges">`,
   );
 
   if (!options.transparentBackground) {
@@ -177,7 +177,10 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
         );
         return;
       }
-      if (logoClip && moduleWithinClip(baseX, baseY, moduleSize, logoClip)) {
+      if (
+        logoClip &&
+        moduleWithinClip(baseX, baseY, moduleSize, moduleSize, logoClip)
+      ) {
         return;
       }
 
@@ -360,34 +363,41 @@ function drawModules(
 
     row.forEach((isDark, x) => {
       if (!isDark) return;
-      const drawX = offset + x * moduleSize;
-      const drawY = offset + y * moduleSize;
-
-      if (isFinderModule(x, y, matrix.size)) {
-        ctx.fillRect(drawX, drawY, moduleSize, moduleSize);
+      const baseX = offset + x * moduleSize;
+      const baseY = offset + y * moduleSize;
+      if (
+        logoClip &&
+        moduleWithinClip(baseX, baseY, moduleSize, moduleSize, logoClip)
+      ) {
         return;
       }
-      if (logoClip && moduleWithinClip(drawX, drawY, moduleSize, logoClip)) {
+      const rect = getAlignedRect(baseX, baseY, moduleSize);
+
+      if (isFinderModule(x, y, matrix.size)) {
+        ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
         return;
       }
 
       switch (options.style) {
         case "dots": {
-          const radius = (moduleSize * styleScale) / 2;
+          const radius = (rect.width * styleScale) / 2;
+          const centerX = rect.x + rect.width / 2;
+          const centerY = rect.y + rect.height / 2;
           ctx.beginPath();
-          ctx.arc(drawX + moduleSize / 2, drawY + moduleSize / 2, radius, 0, Math.PI * 2);
+          ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
           ctx.fill();
           break;
         }
         case "rounded": {
           const size = moduleSize * styleScale;
           const inset = (moduleSize - size) / 2;
+          const adjusted = getAlignedRect(baseX + inset, baseY + inset, size);
           drawRoundedRect(
             ctx,
-            drawX + inset,
-            drawY + inset,
-            size,
-            size,
+            adjusted.x,
+            adjusted.y,
+            adjusted.width,
+            adjusted.height,
             size * 0.35,
           );
           break;
@@ -395,12 +405,13 @@ function drawModules(
         case "outline": {
           const size = moduleSize * styleScale;
           const inset = (moduleSize - size) / 2;
+          const adjusted = getAlignedRect(baseX + inset, baseY + inset, size);
           ctx.lineWidth = Math.max(1, size * 0.3);
-          ctx.strokeRect(drawX + inset, drawY + inset, size, size);
+          ctx.strokeRect(adjusted.x, adjusted.y, adjusted.width, adjusted.height);
           break;
         }
         default: {
-          ctx.fillRect(drawX, drawY, moduleSize, moduleSize);
+          ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
         }
       }
     });
@@ -457,7 +468,10 @@ function drawPillRow(
     if (isDark) {
       const baseX = offset + x * moduleSize;
       const baseY = offset + rowIndex * moduleSize;
-      if (logoClip && moduleWithinClip(baseX, baseY, moduleSize, logoClip)) {
+      if (
+        logoClip &&
+        moduleWithinClip(baseX, baseY, moduleSize, moduleSize, logoClip)
+      ) {
         if (runStart !== -1) {
           flushRun(x);
         }
@@ -527,7 +541,10 @@ function appendPillRowSvg(
     if (isDark) {
       const baseX = offset + x * moduleSize;
       const baseY = offset + rowIndex * moduleSize;
-      if (logoClip && moduleWithinClip(baseX, baseY, moduleSize, logoClip)) {
+      if (
+        logoClip &&
+        moduleWithinClip(baseX, baseY, moduleSize, moduleSize, logoClip)
+      ) {
         if (runStart !== -1) {
           flushRun(x);
         }
@@ -626,11 +643,8 @@ function drawRoundedRect(
 
 function computeModuleSize(moduleCount: number, size: number) {
   const totalModules = moduleCount + QUIET_ZONE_MODULES * 2;
-  const moduleSize = Math.max(1, Math.floor(size / totalModules));
-  const qrPixelSize = moduleSize * totalModules;
-  const extraSpace = size - qrPixelSize;
-  const outerOffset = Math.max(0, Math.floor(extraSpace / 2));
-  const offset = outerOffset + moduleSize * QUIET_ZONE_MODULES;
+  const moduleSize = size / totalModules;
+  const offset = moduleSize * QUIET_ZONE_MODULES;
   return { moduleSize, offset };
 }
 
@@ -657,11 +671,12 @@ function computeLogoClip(
 function moduleWithinClip(
   moduleX: number,
   moduleY: number,
-  moduleSize: number,
+  width: number,
+  height: number,
   clip: LogoClip,
 ) {
-  const right = moduleX + moduleSize;
-  const bottom = moduleY + moduleSize;
+  const right = moduleX + width;
+  const bottom = moduleY + height;
   return (
     moduleX < clip.x + clip.size &&
     right > clip.x &&
@@ -701,6 +716,19 @@ function escapeXml(value: string) {
 
 function escapeAttribute(value: string) {
   return value.replace(/["']/g, (char) => (char === '"' ? "&quot;" : "&apos;"));
+}
+
+function getAlignedRect(x: number, y: number, size: number) {
+  const x1 = Math.round(x);
+  const y1 = Math.round(y);
+  const x2 = Math.round(x + size);
+  const y2 = Math.round(y + size);
+  return {
+    x: x1,
+    y: y1,
+    width: Math.max(1, x2 - x1),
+    height: Math.max(1, y2 - y1),
+  };
 }
 
 function mapLabelAlign(align: LabelOptions["align"]) {
