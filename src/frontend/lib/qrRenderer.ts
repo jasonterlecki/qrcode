@@ -309,7 +309,7 @@ function computeLabelLayout(
   const fontSize = Math.round(
     LABEL_FONT_SCALE[label.size] * width,
   );
-  const lineHeight = fontSize + 8;
+  const lineHeight = fontSize + Math.max(8, fontSize * 0.12);
   const font = `${label.weight === "bold" ? 700 : 500} ${fontSize}px Inter, 'Segoe UI', sans-serif`;
   const measureCanvas = document.createElement("canvas");
   const ctx = measureCanvas.getContext("2d");
@@ -350,7 +350,7 @@ function computeLabelLayout(
     Math.min(maxWidth, ctx.measureText(line).width),
   );
   const contentWidth = lineWidths.reduce((max, value) => Math.max(max, value), 0);
-  const height = trimmedLines.length * lineHeight + 20;
+  const height = trimmedLines.length * lineHeight + 8;
   return {
     lines: trimmedLines,
     lineWidths,
@@ -774,10 +774,10 @@ function drawLabel(
     return;
   }
 
-  const paddingX = 16;
-  const paddingY = 10;
+  const paddingX = Math.max(10, Math.round(layout.lineHeight * 0.55));
+  const paddingY = Math.max(6, Math.round(layout.lineHeight * 0.2));
   const paddingOffset = 18;
-  const baseY = options.size + Math.max(4, Math.round(layout.lineHeight * 0.5));
+  const baseY = options.size + Math.max(2, Math.round(layout.lineHeight * 0.15));
   const labelOptions = options.label;
   const textColor = labelOptions.invert
     ? options.background
@@ -789,10 +789,7 @@ function drawLabel(
   const anchorX = computeLabelX(options.size, paddingOffset, labelOptions.align);
   layout.lines.forEach((line, index) => {
     const lineWidth = layout.lineWidths[index] ?? layout.contentWidth;
-    const lineY =
-      baseY +
-      index * layout.lineHeight +
-      (labelOptions.invert ? paddingY / 2 : 0);
+    const lineY = baseY + index * layout.lineHeight;
 
     if (labelOptions.invert) {
       const rectWidth = lineWidth + paddingX * 2;
@@ -806,10 +803,10 @@ function drawLabel(
       drawRoundedRect(
         ctx,
         rectX,
-        lineY - paddingY,
+        lineY - paddingY / 2,
         rectWidth,
         rectHeight,
-        rectHeight * 0.4,
+        rectHeight * 0.45,
         options.foreground,
       );
     }
