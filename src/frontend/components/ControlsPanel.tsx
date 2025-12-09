@@ -268,6 +268,18 @@ export function ControlsPanel({
         </div>
       </div>
 
+      <label className="field field--checkbox">
+        <input
+          type="checkbox"
+          checked={design.label.invert}
+          onChange={(event) => onLabelChange({ invert: event.target.checked })}
+        />
+        <span>Reverse label colors</span>
+      </label>
+      <p className="hint">
+        Swaps the label text/background colors to match the QR code palette.
+      </p>
+
       <SectionHeading icon={ImageIcon} text="Logo overlay" />
       <LogoUploader
         logo={logoSettings.asset}

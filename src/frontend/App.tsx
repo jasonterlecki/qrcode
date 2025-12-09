@@ -65,6 +65,7 @@ const initialDesign: QrDesignState = {
     size: "md",
     weight: "regular",
     align: "center",
+    invert: false,
   },
 };
 

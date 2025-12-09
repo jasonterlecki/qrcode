@@ -18,6 +18,7 @@ export interface LabelOptions {
   size: LabelSize;
   weight: LabelWeight;
   align: LabelAlign;
+  invert: boolean;
 }
 
 export interface LogoAsset {

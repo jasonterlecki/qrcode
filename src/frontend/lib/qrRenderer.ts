@@ -51,6 +51,8 @@ interface LogoClip {
 
 interface LabelLayout {
   lines: string[];
+  lineWidths: number[];
+  contentWidth: number;
   height: number;
   font: string;
   maxWidth: number;
@@ -238,18 +240,38 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
   const labelOptions = options.label;
   if (labelLayout.lines.length > 0 && labelOptions) {
     const padding = 18;
+    const paddingX = 10;
+    const paddingY = 4;
     const textY = labelStart + 12;
     const textAnchor = mapLabelAlign(labelOptions.align);
+    const textColor = escapeAttribute(
+      labelOptions.invert ? options.background : options.foreground,
+    );
+    const backgroundColor = escapeAttribute(options.foreground);
 
     labelLayout.lines.forEach((line, index) => {
       const y = textY + index * labelLayout.lineHeight;
       const x = computeLabelX(options.size, padding, labelOptions.align);
+      const lineWidth = labelLayout.lineWidths[index] ?? labelLayout.contentWidth;
+
+      if (labelOptions.invert) {
+        const rectWidth = lineWidth + paddingX * 2;
+        const rectHeight = labelLayout.lineHeight;
+        const rectX = computeLabelRectX(
+          x,
+          rectWidth,
+          paddingX,
+          labelOptions.align,
+        );
+        parts.push(
+          `<rect x="${rectX}" y="${y - paddingY / 2}" width="${rectWidth}" height="${rectHeight}" fill="${backgroundColor}"${buildRadiusAttr(rectHeight * 0.3)}/>`,
+        );
+      }
+
       parts.push(
         `<text x="${x}" y="${y}" font-family="Inter, 'Segoe UI', sans-serif" font-size="${LABEL_FONT_SIZES[labelOptions.size]}" font-weight="${
           labelOptions.weight === "bold" ? 700 : 500
-        }" text-anchor="${textAnchor}" fill="${escapeAttribute(
-          options.foreground,
-        )}">${escapeXml(line)}</text>`,
+        }" text-anchor="${textAnchor}" fill="${textColor}">${escapeXml(line)}</text>`,
       );
     });
   }
@@ -273,7 +295,15 @@ function computeLabelLayout(
   width: number,
 ): LabelLayout {
   if (!label || !label.text.trim()) {
-    return { lines: [], height: 0, font: "", maxWidth: width, lineHeight: 0 };
+    return {
+      lines: [],
+      lineWidths: [],
+      contentWidth: 0,
+      height: 0,
+      font: "",
+      maxWidth: width,
+      lineHeight: 0,
+    };
   }
 
   const fontSize = LABEL_FONT_SIZES[label.size];
@@ -282,7 +312,16 @@ function computeLabelLayout(
   const measureCanvas = document.createElement("canvas");
   const ctx = measureCanvas.getContext("2d");
   if (!ctx) {
-    return { lines: [label.text], height: lineHeight + 16, font, maxWidth: width, lineHeight };
+    const fallbackWidth = Math.min(width - 32, label.text.length * fontSize * 0.45);
+    return {
+      lines: [label.text],
+      lineWidths: [fallbackWidth],
+      contentWidth: fallbackWidth,
+      height: lineHeight + 24,
+      font,
+      maxWidth: width,
+      lineHeight,
+    };
   }
   ctx.font = font;
   const maxWidth = width - 32;
@@ -305,8 +344,20 @@ function computeLabelLayout(
   }
 
   const trimmedLines = lines.slice(0, 3);
+  const lineWidths = trimmedLines.map((line) =>
+    Math.min(maxWidth, ctx.measureText(line).width),
+  );
+  const contentWidth = lineWidths.reduce((max, value) => Math.max(max, value), 0);
   const height = trimmedLines.length * lineHeight + 24;
-  return { lines: trimmedLines, height, font, maxWidth, lineHeight };
+  return {
+    lines: trimmedLines,
+    lineWidths,
+    contentWidth,
+    height,
+    font,
+    maxWidth,
+    lineHeight,
+  };
 }
 
 async function buildMatrix(text: string, preferHighEcc: boolean) {
@@ -721,16 +772,45 @@ function drawLabel(
     return;
   }
 
-  const padding = 18;
+  const paddingX = 10;
+  const paddingY = 4;
+  const paddingOffset = 18;
   const baseY = options.size + 12;
-  ctx.fillStyle = options.foreground;
+  const labelOptions = options.label;
+  const textColor = labelOptions.invert
+    ? options.background
+    : options.foreground;
   ctx.font = layout.font;
   ctx.textBaseline = "top";
-  ctx.textAlign = options.label.align as CanvasTextAlign;
+  ctx.textAlign = labelOptions.align as CanvasTextAlign;
 
-  const x = computeLabelX(options.size, padding, options.label.align);
+  const anchorX = computeLabelX(options.size, paddingOffset, labelOptions.align);
   layout.lines.forEach((line, index) => {
-    ctx.fillText(line, x, baseY + index * layout.lineHeight);
+    const lineWidth = layout.lineWidths[index] ?? layout.contentWidth;
+    const lineY = baseY + index * layout.lineHeight;
+
+    if (labelOptions.invert) {
+      const rectWidth = lineWidth + paddingX * 2;
+      const rectHeight = layout.lineHeight;
+      const rectX = computeLabelRectX(
+        anchorX,
+        rectWidth,
+        paddingX,
+        labelOptions.align,
+      );
+      drawRoundedRect(
+        ctx,
+        rectX,
+        lineY - paddingY / 2,
+        rectWidth,
+        rectHeight,
+        rectHeight * 0.3,
+        options.foreground,
+      );
+    }
+
+    ctx.fillStyle = textColor;
+    ctx.fillText(line, anchorX, lineY);
   });
 }
 
@@ -910,4 +990,19 @@ function computeLabelX(
     return size - padding;
   }
   return size / 2;
+}
+
+function computeLabelRectX(
+  anchorX: number,
+  rectWidth: number,
+  paddingX: number,
+  align: LabelOptions["align"],
+) {
+  if (align === "left") {
+    return anchorX - paddingX;
+  }
+  if (align === "right") {
+    return anchorX - rectWidth + paddingX;
+  }
+  return anchorX - rectWidth / 2;
 }

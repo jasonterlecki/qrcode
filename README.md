@@ -13,7 +13,7 @@ Create **polished, branded QR codes** with multiple visual styles, logo upload, 
 - Style selector: **Classic**, **Rounded**, **Dots**, **Pills**, **Outline** rendered through a custom drawing pipeline.
 - Foreground/background color pickers with contrast warnings plus a transparent background toggle (PNG/WEBP/SVG only).
 - Client-side logo upload (PNG/JPEG/WEBP/SVG, ≤ 4 MB) with a size slider and optional white safe zone.
-- Optional label beneath the QR code (multi-line, adjustable size/weight/alignment) included in preview and exports.
+- Optional label beneath the QR code (multi-line, adjustable size/weight/alignment) with a “reverse colors” toggle so captions can contrast against any palette; included in preview and exports.
 - Live preview that updates instantly and surfaces warnings when scannability might degrade.
 - Download buttons for **JPEG**, **PNG**, **SVG**, and **WEBP** with timestamped filenames and transparency handling.
 
@@ -102,7 +102,7 @@ If/when an Express backend is added to serve the compiled frontend, document the
 3. Choose a QR style (Classic, Rounded, Dots, Pills, Outline).
 4. Pick foreground/background colors and optionally enable a transparent background.
 5. Upload a brand logo (PNG/JPEG/WEBP/SVG up to 4 MB). Adjust the size slider and toggle the white safe zone for better scannability.
-6. Add an optional label, selecting its size, weight, and alignment.
+6. Add an optional label, selecting its size, weight, alignment, and (optionally) flipping its colors against the QR palette for better contrast.
 7. Watch the preview update automatically and review any warnings.
 8. Download the QR as JPEG, PNG, SVG, or WEBP. Transparency applies to PNG/WEBP/SVG; JPEG always uses a solid background.
 
