@@ -176,218 +176,239 @@ export function ControlsPanel({
         onChange={handlePresetFileChange}
       />
 
-      <SectionHeading icon={Sparkles} text="Theme presets" />
-      <div className="theme-grid">
-        {THEME_PRESETS.map((preset) => (
-          <button
-            key={preset.id}
-            type="button"
-            className={`theme-card ${
-              activeThemeId === preset.id ? "theme-card--active" : ""
+      <div className="controls-grid">
+        <div className="controls-card controls-card--wide">
+          <SectionHeading icon={QrCode} text="Content" />
+          <p className="hint">
+            Choose the payload type and fill out the contextual fields. Downloads
+            unlock once the payload is valid.
+          </p>
+          <div className="style-grid">
+            {CONTENT_TYPES.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                className={chipClass(design.contentType === option.id)}
+                onClick={() => onContentTypeChange(option.id)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          {renderContentFields(
+            design.contentType,
+            design.content,
+            {
+              onUrlChange,
+              onTextChange,
+              onWifiChange,
+              onVcardChange,
+              onPhoneChange,
+              onSmsChange,
+              onSocialChange,
+              onPaymentChange,
+            },
+          )}
+          <p className="hint">
+            Payload preview: {contentStatus.summary || "—"}
+          </p>
+          {contentStatus.message && (
+            <p className="hint hint--warning">{contentStatus.message}</p>
+          )}
+        </div>
+
+        <div className="controls-card">
+          <SectionHeading icon={Shapes} text="Style" />
+          <div className="style-grid">
+            {QR_STYLES.map((option) => (
+              <button
+                type="button"
+                key={option.id}
+                className={chipClass(design.style === option.id)}
+                onClick={() => onStyleChange(option.id)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          <SectionHeading icon={Palette} text="Colors" />
+          <div className="field field--dual">
+            <label>
+              <span>Foreground</span>
+              <input
+                type="color"
+                value={design.foreground}
+                aria-label="Foreground color"
+                onChange={(event) => onForegroundChange(event.target.value)}
+              />
+            </label>
+
+            <label>
+              <span>Background</span>
+              <input
+                type="color"
+                value={design.background}
+                aria-label="Background color"
+                disabled={design.transparentBackground}
+                onChange={(event) => onBackgroundChange(event.target.value)}
+              />
+            </label>
+          </div>
+
+          <p
+            className={`hint ${
+              contrastRatio < 3 && !design.transparentBackground
+                ? "hint--warning"
+                : ""
             }`}
-            onClick={() => onApplyTheme(preset)}
           >
-            <div className="theme-card__swatch">
-              <span style={{ background: preset.foreground }} />
-              <span style={{ background: preset.background }} />
+            Contrast ratio: {ratioLabel}:1
+          </p>
+
+          <label className="field field--checkbox">
+            <input
+              type="checkbox"
+              checked={design.transparentBackground}
+              onChange={(event) => onTransparentToggle(event.target.checked)}
+            />
+            <span>Transparent background (PNG, WEBP, SVG)</span>
+          </label>
+        </div>
+
+        <div className="controls-card">
+          <SectionHeading icon={TypeIcon} text="Label" />
+          <label className="field">
+            <span>Caption text</span>
+            <input
+              type="text"
+              placeholder="Add a caption"
+              value={design.label.text}
+              onChange={(event) => onLabelChange({ text: event.target.value })}
+            />
+          </label>
+
+          <div className="field">
+            <span>Label size</span>
+            <div className="style-grid">
+              {LABEL_SIZES.map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  className={chipClass(design.label.size === size)}
+                  onClick={() => onLabelChange({ size })}
+                >
+                  {size === "sm" ? "Small" : size === "md" ? "Medium" : "Large"}
+                </button>
+              ))}
             </div>
-            <div className="theme-card__body">
-              <strong>{preset.name}</strong>
-              <p>{preset.description}</p>
+          </div>
+
+          <div className="field">
+            <span>Label weight</span>
+            <div className="style-grid">
+              {LABEL_WEIGHTS.map((weight) => (
+                <button
+                  key={weight}
+                  type="button"
+                  className={chipClass(design.label.weight === weight)}
+                  onClick={() => onLabelChange({ weight })}
+                >
+                  {weight}
+                </button>
+              ))}
             </div>
-          </button>
-        ))}
-      </div>
+          </div>
 
-      <SectionHeading icon={Package} text="Presets & sharing" />
-      <div className="preset-actions">
-        <button type="button" onClick={handleExportPreset}>
-          <DownloadCloud size={16} />
-          Export preset
-        </button>
-        <button type="button" onClick={handleImportClick}>
-          <UploadCloud size={16} />
-          Import preset
-        </button>
-      </div>
-      {importError && <p className="hint hint--danger">{importError}</p>}
-      <p className="hint">
-        Presets capture colors, styles, content, and logo settings for quick reuse.
-      </p>
+          <div className="field">
+            <span>Label alignment</span>
+            <div className="style-grid">
+              {LABEL_ALIGNS.map((align) => (
+                <button
+                  key={align}
+                  type="button"
+                  className={chipClass(design.label.align === align)}
+                  onClick={() => onLabelChange({ align })}
+                >
+                  {align}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      <SectionHeading icon={QrCode} text="Content type" />
-      <div className="style-grid">
-        {CONTENT_TYPES.map((option) => (
-          <button
-            key={option.id}
-            type="button"
-            className={chipClass(design.contentType === option.id)}
-            onClick={() => onContentTypeChange(option.id)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
+          <label className="field field--checkbox">
+            <input
+              type="checkbox"
+              checked={design.label.invert}
+              onChange={(event) =>
+                onLabelChange({ invert: event.target.checked })
+              }
+            />
+            <span>Reverse label colors</span>
+          </label>
+          <p className="hint">
+            Swaps the label text/background colors to match the QR palette.
+          </p>
+        </div>
 
-      {renderContentFields(
-        design.contentType,
-        design.content,
-        {
-          onUrlChange,
-          onTextChange,
-          onWifiChange,
-          onVcardChange,
-          onPhoneChange,
-          onSmsChange,
-          onSocialChange,
-          onPaymentChange,
-        },
-      )}
-
-      <p className="hint">
-        Payload preview: {contentStatus.summary || "—"}
-      </p>
-      {contentStatus.message && (
-        <p className="hint hint--warning">{contentStatus.message}</p>
-      )}
-
-      <SectionHeading icon={Shapes} text="QR style" />
-      <div className="style-grid">
-        {QR_STYLES.map((option) => (
-          <button
-            type="button"
-            key={option.id}
-            className={chipClass(design.style === option.id)}
-            onClick={() => onStyleChange(option.id)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-
-      <SectionHeading icon={Palette} text="Colors" />
-      <div className="field field--dual">
-        <label>
-          <span>Foreground</span>
-          <input
-            type="color"
-            value={design.foreground}
-            aria-label="Foreground color"
-            onChange={(event) => onForegroundChange(event.target.value)}
+        <div className="controls-card">
+          <SectionHeading icon={ImageIcon} text="Logo" />
+          <p className="hint">
+            Upload a PNG/JPEG/SVG/WEBP up to 4&nbsp;MB. Adjust the size slider
+            and enable the safe-zone if the logo blends with modules.
+          </p>
+          <LogoUploader
+            logo={logoSettings.asset}
+            size={logoSettings.size}
+            safeZone={logoSettings.safeZone}
+            onLogoChange={onLogoAssetChange}
+            onSizeChange={onLogoSizeChange}
+            onSafeZoneChange={onLogoSafeZoneChange}
           />
-        </label>
+        </div>
 
-        <label>
-          <span>Background</span>
-          <input
-            type="color"
-            value={design.background}
-            aria-label="Background color"
-            disabled={design.transparentBackground}
-            onChange={(event) => onBackgroundChange(event.target.value)}
-          />
-        </label>
-      </div>
+        <div className="controls-card controls-card--wide">
+          <SectionHeading icon={Sparkles} text="Theme presets" />
+          <div className="theme-grid">
+            {THEME_PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                className={`theme-card ${
+                  activeThemeId === preset.id ? "theme-card--active" : ""
+                }`}
+                onClick={() => onApplyTheme(preset)}
+              >
+                <div className="theme-card__swatch">
+                  <span style={{ background: preset.foreground }} />
+                  <span style={{ background: preset.background }} />
+                </div>
+                <div className="theme-card__body">
+                  <strong>{preset.name}</strong>
+                  <p>{preset.description}</p>
+                </div>
+              </button>
+            ))}
+          </div>
 
-      <p
-        className={`hint ${
-          contrastRatio < 3 && !design.transparentBackground
-            ? "hint--warning"
-            : ""
-        }`}
-      >
-        Contrast ratio: {ratioLabel}:1
-      </p>
-
-      <label className="field field--checkbox">
-        <input
-          type="checkbox"
-          checked={design.transparentBackground}
-          onChange={(event) => onTransparentToggle(event.target.checked)}
-        />
-        <span>Transparent background (PNG, WEBP, SVG)</span>
-      </label>
-
-      <SectionHeading icon={TypeIcon} text="Optional label" />
-      <label className="field">
-        <span>Caption text</span>
-        <input
-          type="text"
-          placeholder="Add a caption"
-          value={design.label.text}
-          onChange={(event) => onLabelChange({ text: event.target.value })}
-        />
-      </label>
-
-      <div className="field">
-        <span>Label size</span>
-        <div className="style-grid">
-          {LABEL_SIZES.map((size) => (
-            <button
-              key={size}
-              type="button"
-              className={chipClass(design.label.size === size)}
-              onClick={() => onLabelChange({ size })}
-            >
-              {size === "sm" ? "Small" : size === "md" ? "Medium" : "Large"}
+          <SectionHeading icon={Package} text="Preset files" />
+          <div className="preset-actions">
+            <button type="button" onClick={handleExportPreset}>
+              <DownloadCloud size={16} />
+              Export preset
             </button>
-          ))}
+            <button type="button" onClick={handleImportClick}>
+              <UploadCloud size={16} />
+              Import preset
+            </button>
+          </div>
+          {importError && <p className="hint hint--danger">{importError}</p>}
+          <p className="hint">
+            Presets capture every design setting (content, colors, style, logo) for
+            quick reuse or sharing.
+          </p>
         </div>
       </div>
-
-      <div className="field">
-        <span>Label weight</span>
-        <div className="style-grid">
-          {LABEL_WEIGHTS.map((weight) => (
-            <button
-              key={weight}
-              type="button"
-              className={chipClass(design.label.weight === weight)}
-              onClick={() => onLabelChange({ weight })}
-            >
-              {weight}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="field">
-        <span>Label alignment</span>
-        <div className="style-grid">
-          {LABEL_ALIGNS.map((align) => (
-            <button
-              key={align}
-              type="button"
-              className={chipClass(design.label.align === align)}
-              onClick={() => onLabelChange({ align })}
-            >
-              {align}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <label className="field field--checkbox">
-        <input
-          type="checkbox"
-          checked={design.label.invert}
-          onChange={(event) => onLabelChange({ invert: event.target.checked })}
-        />
-        <span>Reverse label colors</span>
-      </label>
-      <p className="hint">
-        Swaps the label text/background colors to match the QR code palette.
-      </p>
-
-      <SectionHeading icon={ImageIcon} text="Logo overlay" />
-      <LogoUploader
-        logo={logoSettings.asset}
-        size={logoSettings.size}
-        safeZone={logoSettings.safeZone}
-        onLogoChange={onLogoAssetChange}
-        onSizeChange={onLogoSizeChange}
-        onSafeZoneChange={onLogoSafeZoneChange}
-      />
     </section>
   );
 }

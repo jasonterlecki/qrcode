@@ -77,6 +77,26 @@ body {
   font-size: 1.25rem;
 }
 
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.controls-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  background: #fdfdff;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.controls-card--wide {
+  grid-column: span 2;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -444,5 +464,9 @@ body {
 @media (max-width: 640px) {
   .field--dual {
     flex-direction: column;
+  }
+
+  .controls-card--wide {
+    grid-column: span 1;
   }
 }
