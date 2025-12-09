@@ -719,10 +719,21 @@ function escapeAttribute(value: string) {
 }
 
 function getAlignedRect(x: number, y: number, size: number) {
-  const x1 = Math.round(x);
-  const y1 = Math.round(y);
-  const x2 = Math.round(x + size);
-  const y2 = Math.round(y + size);
+  const precise = size === Math.round(size);
+  if (precise) {
+    const snapped = Math.round(x);
+    return {
+      x: snapped,
+      y: Math.round(y),
+      width: Math.max(1, Math.round(size)),
+      height: Math.max(1, Math.round(size)),
+    };
+  }
+
+  const x1 = Math.floor(x + 0.5);
+  const y1 = Math.floor(y + 0.5);
+  const x2 = Math.floor(x + size + 0.5);
+  const y2 = Math.floor(y + size + 0.5);
   return {
     x: x1,
     y: y1,
