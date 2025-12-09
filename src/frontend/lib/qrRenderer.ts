@@ -628,8 +628,9 @@ function computeModuleSize(moduleCount: number, size: number) {
   const totalModules = moduleCount + QUIET_ZONE_MODULES * 2;
   const moduleSize = Math.max(1, Math.floor(size / totalModules));
   const qrPixelSize = moduleSize * totalModules;
-  const padding = (size - qrPixelSize) / 2;
-  const offset = padding + moduleSize * QUIET_ZONE_MODULES;
+  const extraSpace = size - qrPixelSize;
+  const outerOffset = Math.max(0, Math.floor(extraSpace / 2));
+  const offset = outerOffset + moduleSize * QUIET_ZONE_MODULES;
   return { moduleSize, offset };
 }
 
