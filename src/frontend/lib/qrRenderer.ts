@@ -777,7 +777,7 @@ function drawLabel(
   const paddingX = Math.max(10, Math.round(layout.lineHeight * 0.55));
   const paddingY = Math.max(6, Math.round(layout.lineHeight * 0.2));
   const paddingOffset = 18;
-  const baseY = options.size + Math.max(1, Math.round(layout.lineHeight * 0.05));
+  const baseY = options.size - Math.max(2, Math.round(layout.lineHeight * 0.15));
   const labelOptions = options.label;
   const textColor = labelOptions.invert
     ? options.background
