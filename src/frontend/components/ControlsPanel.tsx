@@ -4,8 +4,12 @@ import type {
   LabelWeight,
   LogoAsset,
   LogoSettings,
+  QrContentType,
   QrDesignState,
+  VcardContent,
+  WifiContent,
 } from "../types";
+import type { ContentPayload } from "../lib/content";
 import { LogoUploader } from "./LogoUploader";
 
 const QR_STYLES = [
@@ -16,16 +20,33 @@ const QR_STYLES = [
   { id: "outline", label: "Outline" },
 ] as const;
 
+const CONTENT_TYPES: { id: QrContentType; label: string }[] = [
+  { id: "url", label: "URL" },
+  { id: "text", label: "Plain text" },
+  { id: "wifi", label: "Wi-Fi login" },
+  { id: "vcard", label: "vCard contact" },
+] as const;
+
+const WIFI_SECURITIES = [
+  { id: "WPA", label: "WPA/WPA2" },
+  { id: "WEP", label: "WEP" },
+  { id: "nopass", label: "Open (no password)" },
+] as const;
+
 const LABEL_SIZES: LabelSize[] = ["sm", "md", "lg"];
 const LABEL_WEIGHTS: LabelWeight[] = ["regular", "bold"];
 const LABEL_ALIGNS: LabelOptions["align"][] = ["left", "center", "right"];
 
 interface ControlsPanelProps {
   design: QrDesignState;
-  urlValid: boolean;
+  contentStatus: ContentPayload;
   contrastRatio: number;
   logoSettings: LogoSettings;
+  onContentTypeChange: (value: QrContentType) => void;
   onUrlChange: (value: string) => void;
+  onTextChange: (value: string) => void;
+  onWifiChange: (partial: Partial<WifiContent>) => void;
+  onVcardChange: (partial: Partial<VcardContent>) => void;
   onStyleChange: (value: QrDesignState["style"]) => void;
   onForegroundChange: (value: string) => void;
   onBackgroundChange: (value: string) => void;
@@ -38,10 +59,14 @@ interface ControlsPanelProps {
 
 export function ControlsPanel({
   design,
-  urlValid,
+  contentStatus,
   contrastRatio,
   logoSettings,
+  onContentTypeChange,
   onUrlChange,
+  onTextChange,
+  onWifiChange,
+  onVcardChange,
   onStyleChange,
   onForegroundChange,
   onBackgroundChange,
@@ -57,19 +82,33 @@ export function ControlsPanel({
     <section className="panel panel--controls">
       <h2>Controls</h2>
 
-      <label className="field">
-        <span>Destination URL</span>
-        <input
-          type="url"
-          placeholder="https://your-domain.com"
-          value={design.url}
-          onChange={(event) => onUrlChange(event.target.value)}
-        />
-      </label>
-      {!urlValid && (
-        <p className="hint hint--warning">
-          Enter a full URL (including https://) to enable downloads.
-        </p>
+      <div className="field">
+        <span>Content type</span>
+        <div className="style-grid">
+          {CONTENT_TYPES.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className={chipClass(design.contentType === option.id)}
+              onClick={() => onContentTypeChange(option.id)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {renderContentFields(
+        design.contentType,
+        design.content,
+        { onUrlChange, onTextChange, onWifiChange, onVcardChange },
+      )}
+
+      <p className="hint">
+        Payload preview: {contentStatus.summary || "—"}
+      </p>
+      {contentStatus.message && (
+        <p className="hint hint--warning">{contentStatus.message}</p>
       )}
 
       <div className="field">
@@ -202,4 +241,190 @@ export function ControlsPanel({
 
 function chipClass(active: boolean) {
   return `chip ${active ? "chip--active" : ""}`;
+}
+
+function renderContentFields(
+  type: QrContentType,
+  content: QrDesignState["content"],
+  handlers: {
+    onUrlChange: (value: string) => void;
+    onTextChange: (value: string) => void;
+    onWifiChange: (partial: Partial<WifiContent>) => void;
+    onVcardChange: (partial: Partial<VcardContent>) => void;
+  },
+) {
+  if (type === "url") {
+    return (
+      <label className="field">
+        <span>Destination URL</span>
+        <input
+          type="url"
+          placeholder="https://your-domain.com"
+          value={content.url}
+          onChange={(event) => handlers.onUrlChange(event.target.value)}
+        />
+      </label>
+    );
+  }
+
+  if (type === "text") {
+    return (
+      <label className="field">
+        <span>Plain text</span>
+        <textarea
+          rows={3}
+          placeholder="Add any text, promo code, or short message."
+          value={content.text}
+          onChange={(event) => handlers.onTextChange(event.target.value)}
+        />
+      </label>
+    );
+  }
+
+  if (type === "wifi") {
+    return (
+      <div className="content-card">
+        <label className="field">
+          <span>Wi-Fi network (SSID)</span>
+          <input
+            type="text"
+            placeholder="MyNetwork"
+            value={content.wifi.ssid}
+            onChange={(event) => handlers.onWifiChange({ ssid: event.target.value })}
+          />
+        </label>
+
+        <label className="field">
+          <span>Security</span>
+          <select
+            value={content.wifi.security}
+            onChange={(event) =>
+              handlers.onWifiChange({
+                security: event.target.value as WifiContent["security"],
+              })
+            }
+          >
+            {WIFI_SECURITIES.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {content.wifi.security !== "nopass" && (
+          <label className="field">
+            <span>Password</span>
+            <input
+              type="text"
+              placeholder="Password"
+              value={content.wifi.password}
+              onChange={(event) =>
+                handlers.onWifiChange({ password: event.target.value })
+              }
+            />
+          </label>
+        )}
+
+        <label className="field field--checkbox">
+          <input
+            type="checkbox"
+            checked={content.wifi.hidden}
+            onChange={(event) =>
+              handlers.onWifiChange({ hidden: event.target.checked })
+            }
+          />
+          <span>Hidden network</span>
+        </label>
+      </div>
+    );
+  }
+
+  return (
+    <div className="content-card">
+      <label className="field">
+        <span>Full name</span>
+        <input
+          type="text"
+          placeholder="Jordan Sample"
+          value={content.vcard.name}
+          onChange={(event) =>
+            handlers.onVcardChange({ name: event.target.value })
+          }
+        />
+      </label>
+
+      <label className="field">
+        <span>Organization</span>
+        <input
+          type="text"
+          placeholder="Studio / Company"
+          value={content.vcard.organization}
+          onChange={(event) =>
+            handlers.onVcardChange({ organization: event.target.value })
+          }
+        />
+      </label>
+
+      <label className="field">
+        <span>Title</span>
+        <input
+          type="text"
+          placeholder="Role or title"
+          value={content.vcard.title}
+          onChange={(event) =>
+            handlers.onVcardChange({ title: event.target.value })
+          }
+        />
+      </label>
+
+      <label className="field">
+        <span>Phone</span>
+        <input
+          type="tel"
+          placeholder="+1 555-123-4567"
+          value={content.vcard.phone}
+          onChange={(event) =>
+            handlers.onVcardChange({ phone: event.target.value })
+          }
+        />
+      </label>
+
+      <label className="field">
+        <span>Email</span>
+        <input
+          type="email"
+          placeholder="you@example.com"
+          value={content.vcard.email}
+          onChange={(event) =>
+            handlers.onVcardChange({ email: event.target.value })
+          }
+        />
+      </label>
+
+      <label className="field">
+        <span>Website</span>
+        <input
+          type="url"
+          placeholder="https://your-site.com"
+          value={content.vcard.url}
+          onChange={(event) =>
+            handlers.onVcardChange({ url: event.target.value })
+          }
+        />
+      </label>
+
+      <label className="field">
+        <span>Notes</span>
+        <textarea
+          rows={2}
+          placeholder="Any additional info"
+          value={content.vcard.note}
+          onChange={(event) =>
+            handlers.onVcardChange({ note: event.target.value })
+          }
+        />
+      </label>
+    </div>
+  );
 }

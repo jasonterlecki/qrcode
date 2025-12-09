@@ -5,12 +5,35 @@ import type {
   LabelOptions,
   LogoAsset,
   LogoSettings,
+  QrContentState,
   QrDesignState,
 } from "./types";
 import { getContrastRatio } from "./lib/color";
+import { buildContentPayload } from "./lib/content";
+
+const initialContent: QrContentState = {
+  url: "https://example.com",
+  text: "",
+  wifi: {
+    ssid: "",
+    password: "",
+    security: "WPA",
+    hidden: false,
+  },
+  vcard: {
+    name: "",
+    organization: "",
+    title: "",
+    phone: "",
+    email: "",
+    url: "",
+    note: "",
+  },
+};
 
 const initialDesign: QrDesignState = {
-  url: "https://example.com",
+  contentType: "url",
+  content: initialContent,
   style: "classic",
   foreground: "#111111",
   background: "#ffffff",
@@ -33,7 +56,10 @@ export default function App() {
   const [design, setDesign] = useState<QrDesignState>(initialDesign);
   const [logoSettings, setLogoSettings] = useState<LogoSettings>(initialLogo);
 
-  const urlValid = useMemo(() => isLikelyUrl(design.url), [design.url]);
+  const contentPayload = useMemo(
+    () => buildContentPayload(design.contentType, design.content),
+    [design.contentType, design.content],
+  );
   const contrastRatio = useMemo(
     () => getContrastRatio(design.foreground, design.background),
     [design.foreground, design.background],
@@ -47,6 +73,7 @@ export default function App() {
     }
     return warnings;
   }, [design.transparentBackground, contrastRatio]);
+  const contentReady = contentPayload.valid && Boolean(contentPayload.value);
 
   const handleLabelChange = (partial: Partial<LabelOptions>) => {
     setDesign((prev) => ({
@@ -57,6 +84,32 @@ export default function App() {
 
   const handleLogoAssetChange = (asset: LogoAsset | null) => {
     setLogoSettings((prev) => ({ ...prev, asset }));
+  };
+
+  const setSimpleContent = (key: "url" | "text", value: string) => {
+    setDesign((prev) => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        [key]: value,
+      },
+    }));
+  };
+
+  const setStructuredContent = <K extends "wifi" | "vcard">(
+    key: K,
+    partial: Partial<QrContentState[K]>,
+  ) => {
+    setDesign((prev) => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        [key]: {
+          ...prev.content[key],
+          ...partial,
+        },
+      },
+    }));
   };
 
   return (
@@ -75,15 +128,19 @@ export default function App() {
       <main className="app-shell__main">
         <ControlsPanel
           design={design}
-          urlValid={urlValid}
+          contentStatus={contentPayload}
           contrastRatio={contrastRatio}
           logoSettings={logoSettings}
-          onUrlChange={(value) =>
+          onContentTypeChange={(value) =>
             setDesign((prev) => ({
               ...prev,
-              url: value,
+              contentType: value,
             }))
           }
+          onUrlChange={(value) => setSimpleContent("url", value)}
+          onTextChange={(value) => setSimpleContent("text", value)}
+          onWifiChange={(partial) => setStructuredContent("wifi", partial)}
+          onVcardChange={(partial) => setStructuredContent("vcard", partial)}
           onStyleChange={(value) =>
             setDesign((prev) => ({
               ...prev,
@@ -127,19 +184,12 @@ export default function App() {
         <QrPreview
           design={design}
           logo={logoSettings}
-          urlValid={urlValid}
+          contentReady={contentReady}
+          contentMessage={contentPayload.message}
+          qrValue={contentPayload.value}
           warnings={contrastWarnings}
         />
       </main>
     </div>
   );
-}
-
-function isLikelyUrl(value: string) {
-  try {
-    const parsed = new URL(value);
-    return Boolean(parsed.protocol && parsed.hostname);
-  } catch {
-    return false;
-  }
 }

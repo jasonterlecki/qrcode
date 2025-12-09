@@ -20,14 +20,18 @@ const DOWNLOAD_FORMATS: DownloadFormat[] = [
 interface QrPreviewProps {
   design: QrDesignState;
   logo: LogoSettings;
-  urlValid: boolean;
+  contentReady: boolean;
+  contentMessage?: string;
+  qrValue: string;
   warnings: string[];
 }
 
 export function QrPreview({
   design,
   logo,
-  urlValid,
+  contentReady,
+  contentMessage,
+  qrValue,
   warnings,
 }: QrPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -51,7 +55,7 @@ export function QrPreview({
       ? design.label
       : undefined;
     return {
-      text: design.url.trim(),
+      text: qrValue,
       style: design.style,
       foreground: design.foreground,
       background: design.background,
@@ -60,7 +64,7 @@ export function QrPreview({
       logo: logoPayload,
     };
   }, [
-    design.url,
+    qrValue,
     design.style,
     design.foreground,
     design.background,
@@ -79,7 +83,7 @@ export function QrPreview({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    if (!urlValid) {
+    if (!contentReady || !qrValue) {
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -113,10 +117,10 @@ export function QrPreview({
     return () => {
       cancelled = true;
     };
-  }, [baseOptions, urlValid]);
+  }, [baseOptions, contentReady, qrValue]);
 
   const handleDownload = async (format: DownloadFormat) => {
-    if (!urlValid) return;
+    if (!contentReady) return;
     setDownloading(format.id);
     try {
       if (format.id === "svg") {
@@ -144,7 +148,7 @@ export function QrPreview({
   };
 
   const disableDownloads =
-    !urlValid || isRendering || (logo.asset && logoStatus === "loading");
+    !contentReady || isRendering || (logo.asset && logoStatus === "loading");
 
   const aggregatedWarnings = [...warnings];
   if (logoStatus === "error") {
@@ -171,8 +175,11 @@ export function QrPreview({
           className="qr-preview__canvas"
           aria-label="QR preview"
         />
-        {!urlValid && (
-          <p className="hint">Add a valid URL to generate your QR code.</p>
+        {!contentReady && (
+          <p className="hint">
+            {contentMessage ||
+              "Complete the selected content fields to generate your QR code."}
+          </p>
         )}
         {logoStatus === "loading" && (
           <p className="hint">Loading logo...</p>

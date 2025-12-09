@@ -1,4 +1,5 @@
 export type QrStyle = "classic" | "rounded" | "dots" | "pills" | "outline";
+export type QrContentType = "url" | "text" | "wifi" | "vcard";
 
 export type LabelSize = "sm" | "md" | "lg";
 export type LabelWeight = "regular" | "bold";
@@ -23,8 +24,35 @@ export interface LogoSettings {
   safeZone: boolean;
 }
 
-export interface QrDesignState {
+export type WifiSecurity = "WPA" | "WEP" | "nopass";
+
+export interface WifiContent {
+  ssid: string;
+  password: string;
+  security: WifiSecurity;
+  hidden: boolean;
+}
+
+export interface VcardContent {
+  name: string;
+  organization: string;
+  title: string;
+  phone: string;
+  email: string;
   url: string;
+  note: string;
+}
+
+export interface QrContentState {
+  url: string;
+  text: string;
+  wifi: WifiContent;
+  vcard: VcardContent;
+}
+
+export interface QrDesignState {
+  contentType: QrContentType;
+  content: QrContentState;
   style: QrStyle;
   foreground: string;
   background: string;
