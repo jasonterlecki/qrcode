@@ -3,9 +3,9 @@ import type { LabelOptions, QrStyle } from "../types";
 
 const QUIET_ZONE_MODULES = 4;
 const LABEL_FONT_SIZES: Record<NonNullable<LabelOptions["size"]>, number> = {
-  sm: 16,
-  md: 22,
-  lg: 30,
+  sm: 20,
+  md: 30,
+  lg: 40,
 };
 const STYLE_SCALE: Record<QrStyle, number> = {
   classic: 1,
