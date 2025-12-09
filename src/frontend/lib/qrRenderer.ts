@@ -2,10 +2,10 @@ import QRCode from "qrcode";
 import type { LabelOptions, QrStyle } from "../types";
 
 const QUIET_ZONE_MODULES = 4;
-const LABEL_FONT_SIZES: Record<NonNullable<LabelOptions["size"]>, number> = {
-  sm: 20,
-  md: 30,
-  lg: 40,
+const LABEL_FONT_SCALE: Record<NonNullable<LabelOptions["size"]>, number> = {
+  sm: 0.045,
+  md: 0.06,
+  lg: 0.08,
 };
 const STYLE_SCALE: Record<QrStyle, number> = {
   classic: 1,
@@ -269,7 +269,7 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
       }
 
       parts.push(
-        `<text x="${x}" y="${y}" font-family="Inter, 'Segoe UI', sans-serif" font-size="${LABEL_FONT_SIZES[labelOptions.size]}" font-weight="${
+        `<text x="${x}" y="${y}" font-family="Inter, 'Segoe UI', sans-serif" font-size="${LABEL_FONT_SCALE[labelOptions.size] * options.size}" font-weight="${
           labelOptions.weight === "bold" ? 700 : 500
         }" text-anchor="${textAnchor}" fill="${textColor}">${escapeXml(line)}</text>`,
       );
@@ -306,7 +306,9 @@ function computeLabelLayout(
     };
   }
 
-  const fontSize = LABEL_FONT_SIZES[label.size];
+  const fontSize = Math.round(
+    LABEL_FONT_SCALE[label.size] * width,
+  );
   const lineHeight = fontSize + 8;
   const font = `${label.weight === "bold" ? 700 : 500} ${fontSize}px Inter, 'Segoe UI', sans-serif`;
   const measureCanvas = document.createElement("canvas");
