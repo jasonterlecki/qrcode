@@ -125,6 +125,26 @@ If/when an Express backend is added to serve the compiled frontend, document the
 
 ---
 
+## Presets, Batch Tools & Filenames
+
+- **Preset themes & JSON design files**
+
+  - Apply curated palettes/styles with a single click.
+  - Export the current design as `qr-crafter-preset.json`, share it, and import it later. Each file captures the full QR content, color choices, label settings, and logo metadata.
+
+- **Batch URL generation**
+
+  - Available when the content type is URL.
+  - Accepts newline lists (`https://one.com`) or CSV rows (`Promo A,https://one.com`) where the label column overrides the QR caption per image.
+  - Generates a ZIP of PNGs using the current design, including logos/labels, with filenames derived from the provided label, host, or URL slug.
+
+- **Smart filenames**
+
+  - Every download uses the underlying content summary to build a slug (e.g., Wi-Fi SSID, phone number, payment payee, or URL host) followed by the selected style and timestamp.
+  - Batch exports inherit the per-row slug/label so large jobs stay organized.
+
+---
+
 ## Transparency Notes
 
 - **PNG / WEBP / SVG**: Respect the transparent background toggle.
@@ -163,18 +183,3 @@ Never skip this step when collaborating with the CODEX agent.
 ## License
 
 Specify your preferred license here (MIT, proprietary, etc.).
-- **Preset themes & JSON design files**
-
-  - Apply curated palettes/styles with a single click.
-  - Export the current design as `qr-crafter-preset.json`, share it, and import it later. Each file captures the full QR content, color choices, label settings, and logo metadata.
-
-- **Batch URL generation**
-
-  - Available when the content type is URL.
-  - Accepts newline lists (`https://one.com`) or CSV rows (`Promo A,https://one.com`) where the label column overrides the QR caption per image.
-  - Generates a ZIP of PNGs using the current design, including logos/labels, with filenames derived from the provided label, host, or URL slug.
-
-- **Smart filenames**
-
-  - Every download uses the underlying content summary to build a slug (e.g., Wi-Fi SSID, phone number, payment payee, or URL host) followed by the selected style and timestamp.
-  - Batch exports inherit the per-row slug/label so large jobs stay organized.
