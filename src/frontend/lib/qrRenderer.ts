@@ -80,6 +80,7 @@ export async function renderQrToCanvas(
   }
 
   ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  ctx.imageSmoothingEnabled = false;
   ctx.clearRect(0, 0, options.size, canvasHeight);
 
   if (!options.transparentBackground) {
@@ -625,8 +626,10 @@ function drawRoundedRect(
 
 function computeModuleSize(moduleCount: number, size: number) {
   const totalModules = moduleCount + QUIET_ZONE_MODULES * 2;
-  const moduleSize = size / totalModules;
-  const offset = moduleSize * QUIET_ZONE_MODULES;
+  const moduleSize = Math.max(1, Math.floor(size / totalModules));
+  const qrPixelSize = moduleSize * totalModules;
+  const padding = (size - qrPixelSize) / 2;
+  const offset = padding + moduleSize * QUIET_ZONE_MODULES;
   return { moduleSize, offset };
 }
 
