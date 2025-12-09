@@ -268,6 +268,35 @@ body {
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2);
 }
 
+.debug-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: #0f172a;
+  color: #f8fafc;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.debug-panel h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #a5b4fc;
+}
+
+.debug-panel pre {
+  background: #111827;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  max-height: 260px;
+}
+
 .hint {
   margin: 0.5rem 0 0;
   color: #475569;

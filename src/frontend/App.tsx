@@ -55,6 +55,7 @@ const initialLogo: LogoSettings = {
 export default function App() {
   const [design, setDesign] = useState<QrDesignState>(initialDesign);
   const [logoSettings, setLogoSettings] = useState<LogoSettings>(initialLogo);
+  const debugEnabled = import.meta.env.VITE_DEBUG_UI === "true";
 
   const contentPayload = useMemo(
     () => buildContentPayload(design.contentType, design.content),
@@ -190,6 +191,23 @@ export default function App() {
           warnings={contrastWarnings}
         />
       </main>
+
+      {debugEnabled && (
+        <aside className="debug-panel" aria-live="polite">
+          <div>
+            <h2>Debug: Design state</h2>
+            <pre>{JSON.stringify(design, null, 2)}</pre>
+          </div>
+          <div>
+            <h2>Debug: Logo settings</h2>
+            <pre>{JSON.stringify(logoSettings, null, 2)}</pre>
+          </div>
+          <div>
+            <h2>Debug: Content payload</h2>
+            <pre>{JSON.stringify(contentPayload, null, 2)}</pre>
+          </div>
+        </aside>
+      )}
     </div>
   );
 }

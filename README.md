@@ -61,13 +61,19 @@ npm install -D typescript vite @vitejs/plugin-react-swc @types/react @types/reac
 
 ## Development
 
-Start the desktop-focused dev server (alias for `npm run dev`):
+Start the standard desktop dev server:
 
 ```bash
 npm run desktop
 ```
 
-Then open the printed URL (usually `http://localhost:5173`). `npm run dev` remains available if you prefer the original command—the two scripts run the same Vite server.
+Then open the printed URL (usually `http://localhost:5173`). For an instrumented session with live state dumps and payload info, run the debug build instead:
+
+```bash
+npm run dev
+```
+
+`npm run dev` loads Vite in `debug` mode (`.env.debug`), enabling an on-page debug panel that mirrors the QR design state, logo settings, and generated payload.
 
 ---
 
