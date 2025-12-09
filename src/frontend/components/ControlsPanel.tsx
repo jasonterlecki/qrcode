@@ -13,8 +13,16 @@ import type {
   VcardContent,
   WifiContent,
 } from "../types";
+import type { LucideIcon } from "lucide-react";
 import type { ContentPayload } from "../lib/content";
 import { LogoUploader } from "./LogoUploader";
+import {
+  ImageIcon,
+  Palette,
+  QrCode,
+  Shapes,
+  Type as TypeIcon,
+} from "lucide-react";
 
 const QR_STYLES = [
   { id: "classic", label: "Classic" },
@@ -108,20 +116,18 @@ export function ControlsPanel({
     <section className="panel panel--controls">
       <h2>Controls</h2>
 
-      <div className="field">
-        <span>Content type</span>
-        <div className="style-grid">
-          {CONTENT_TYPES.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              className={chipClass(design.contentType === option.id)}
-              onClick={() => onContentTypeChange(option.id)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+      <SectionHeading icon={QrCode} text="Content type" />
+      <div className="style-grid">
+        {CONTENT_TYPES.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            className={chipClass(design.contentType === option.id)}
+            onClick={() => onContentTypeChange(option.id)}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
 
       {renderContentFields(
@@ -146,22 +152,21 @@ export function ControlsPanel({
         <p className="hint hint--warning">{contentStatus.message}</p>
       )}
 
-      <div className="field">
-        <span>QR style</span>
-        <div className="style-grid">
-          {QR_STYLES.map((option) => (
-            <button
-              type="button"
-              key={option.id}
-              className={chipClass(design.style === option.id)}
-              onClick={() => onStyleChange(option.id)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+      <SectionHeading icon={Shapes} text="QR style" />
+      <div className="style-grid">
+        {QR_STYLES.map((option) => (
+          <button
+            type="button"
+            key={option.id}
+            className={chipClass(design.style === option.id)}
+            onClick={() => onStyleChange(option.id)}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
 
+      <SectionHeading icon={Palette} text="Colors" />
       <div className="field field--dual">
         <label>
           <span>Foreground</span>
@@ -204,8 +209,9 @@ export function ControlsPanel({
         <span>Transparent background (PNG, WEBP, SVG)</span>
       </label>
 
+      <SectionHeading icon={TypeIcon} text="Optional label" />
       <label className="field">
-        <span>Optional label</span>
+        <span>Caption text</span>
         <input
           type="text"
           placeholder="Add a caption"
@@ -262,6 +268,7 @@ export function ControlsPanel({
         </div>
       </div>
 
+      <SectionHeading icon={ImageIcon} text="Logo overlay" />
       <LogoUploader
         logo={logoSettings.asset}
         size={logoSettings.size}
@@ -635,6 +642,20 @@ function renderContentFields(
           }
         />
       </label>
+    </div>
+  );
+}
+
+interface SectionHeadingProps {
+  icon: LucideIcon;
+  text: string;
+}
+
+function SectionHeading({ icon: Icon, text }: SectionHeadingProps) {
+  return (
+    <div className="section-heading">
+      <Icon aria-hidden="true" size={18} />
+      <span>{text}</span>
     </div>
   );
 }

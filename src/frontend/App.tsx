@@ -10,6 +10,7 @@ import type {
 } from "./types";
 import { getContrastRatio } from "./lib/color";
 import { buildContentPayload } from "./lib/content";
+import { QrCode } from "lucide-react";
 
 const initialContent: QrContentState = {
   url: "https://example.com",
@@ -139,7 +140,10 @@ export default function App() {
       <header className="app-shell__header">
         <div>
           <p className="eyebrow">QR Crafter</p>
-          <h1>Design branded QR codes in seconds.</h1>
+          <h1 className="app-title">
+            <QrCode aria-hidden="true" size={36} />
+            <span>Design branded QR codes in seconds.</span>
+          </h1>
           <p className="lede">
             Customize module styles, color palettes, logos, and labels. Preview
             everything instantly and export to JPEG, PNG, SVG, or WEBP.

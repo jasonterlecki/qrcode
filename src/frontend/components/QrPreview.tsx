@@ -6,6 +6,7 @@ import {
   exportSvgMarkup,
   renderQrToCanvas,
 } from "../lib/qrRenderer";
+import { Download } from "lucide-react";
 
 const PREVIEW_SIZE = 360;
 const EXPORT_SIZE = 1024;
@@ -205,9 +206,14 @@ export function QrPreview({
             disabled={disableDownloads || downloading === format.id}
             onClick={() => handleDownload(format)}
           >
-            {downloading === format.id
-              ? `Preparing ${format.label}...`
-              : `Download ${format.label}`}
+            <span className="download-button__icon" aria-hidden="true">
+              <Download size={16} />
+            </span>
+            <span>
+              {downloading === format.id
+                ? `Preparing ${format.label}...`
+                : `Download ${format.label}`}
+            </span>
           </button>
         ))}
       </div>
