@@ -1,6 +1,6 @@
 {
   "name": "qr-crafter",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "description": "Generate polished, branded QR codes with multiple styles, logo upload, and exports.",
   "private": true,
   "type": "module",
