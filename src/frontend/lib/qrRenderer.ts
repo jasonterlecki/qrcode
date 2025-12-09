@@ -3,9 +3,9 @@ import type { LabelOptions, QrStyle } from "../types";
 
 const QUIET_ZONE_MODULES = 4;
 const LABEL_FONT_SIZES: Record<NonNullable<LabelOptions["size"]>, number> = {
-  sm: 18,
+  sm: 16,
   md: 22,
-  lg: 28,
+  lg: 30,
 };
 const STYLE_SCALE: Record<QrStyle, number> = {
   classic: 1,
@@ -307,7 +307,7 @@ function computeLabelLayout(
   }
 
   const fontSize = LABEL_FONT_SIZES[label.size];
-  const lineHeight = fontSize + 6;
+  const lineHeight = fontSize + 8;
   const font = `${label.weight === "bold" ? 700 : 500} ${fontSize}px Inter, 'Segoe UI', sans-serif`;
   const measureCanvas = document.createElement("canvas");
   const ctx = measureCanvas.getContext("2d");
@@ -348,7 +348,7 @@ function computeLabelLayout(
     Math.min(maxWidth, ctx.measureText(line).width),
   );
   const contentWidth = lineWidths.reduce((max, value) => Math.max(max, value), 0);
-  const height = trimmedLines.length * lineHeight + 24;
+  const height = trimmedLines.length * lineHeight + 20;
   return {
     lines: trimmedLines,
     lineWidths,
