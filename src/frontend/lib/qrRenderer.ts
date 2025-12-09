@@ -250,7 +250,7 @@ export async function exportSvgMarkup(options: QrRenderOptions) {
     const qrBottom =
       geometry.offset + geometry.moduleSize * matrix.size;
     const baseY =
-      qrBottom + Math.max(6, Math.round(labelLayout.lineHeight * 0.2));
+      qrBottom + Math.max(12, Math.round(labelLayout.lineHeight * 0.4));
     const textAnchor = mapLabelAlign(labelOptions.align);
     const textColor = escapeAttribute(
       labelOptions.invert ? options.background : options.foreground,
@@ -789,7 +789,7 @@ function drawLabel(
   const paddingOffset = 18;
   const qrBottom =
     geometry.offset + geometry.moduleSize * matrixSize;
-  const baseY = qrBottom + Math.max(6, Math.round(layout.lineHeight * 0.2));
+  const baseY = qrBottom + Math.max(12, Math.round(layout.lineHeight * 0.4));
   const labelOptions = options.label;
   const textColor = labelOptions.invert
     ? options.background
