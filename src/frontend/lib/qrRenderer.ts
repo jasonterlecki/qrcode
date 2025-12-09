@@ -840,7 +840,7 @@ function drawRoundedRect(
   ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
   ctx.fill();
-  if (previousFill !== null) {
+  if (previousFill !== null && fillStyle !== undefined) {
     ctx.fillStyle = previousFill;
   }
 }
