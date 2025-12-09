@@ -29,7 +29,28 @@ const initialContent: QrContentState = {
     url: "",
     note: "",
   },
+  phone: {
+    number: "",
+  },
+  sms: {
+    number: "",
+    message: "",
+  },
+  social: {
+    platform: "instagram",
+    handle: "",
+    customUrl: "",
+  },
+  payment: {
+    payee: "",
+    reference: "",
+    amount: "",
+    currency: "USD",
+    url: "",
+  },
 };
+
+type StructuredContentKey = Exclude<keyof QrContentState, "url" | "text">;
 
 const initialDesign: QrDesignState = {
   contentType: "url",
@@ -97,7 +118,7 @@ export default function App() {
     }));
   };
 
-  const setStructuredContent = <K extends "wifi" | "vcard">(
+  const setStructuredContent = <K extends StructuredContentKey>(
     key: K,
     partial: Partial<QrContentState[K]>,
   ) => {
@@ -142,6 +163,10 @@ export default function App() {
           onTextChange={(value) => setSimpleContent("text", value)}
           onWifiChange={(partial) => setStructuredContent("wifi", partial)}
           onVcardChange={(partial) => setStructuredContent("vcard", partial)}
+          onPhoneChange={(partial) => setStructuredContent("phone", partial)}
+          onSmsChange={(partial) => setStructuredContent("sms", partial)}
+          onSocialChange={(partial) => setStructuredContent("social", partial)}
+          onPaymentChange={(partial) => setStructuredContent("payment", partial)}
           onStyleChange={(value) =>
             setDesign((prev) => ({
               ...prev,

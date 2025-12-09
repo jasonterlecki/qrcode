@@ -78,6 +78,7 @@ body {
 .field input[type="text"],
 .field input[type="tel"],
 .field input[type="email"],
+.field input[type="number"],
 .field textarea,
 .field select {
   border-radius: 0.8rem;
@@ -102,6 +103,7 @@ body {
 .field input[type="text"]:focus,
 .field input[type="tel"]:focus,
 .field input[type="email"]:focus,
+.field input[type="number"]:focus,
 .field textarea:focus,
 .field select:focus {
   outline: 2px solid #6366f1;

@@ -4,8 +4,12 @@ import type {
   LabelWeight,
   LogoAsset,
   LogoSettings,
+  PaymentContent,
   QrContentType,
   QrDesignState,
+  SmsContent,
+  SocialContent,
+  SocialPlatform,
   VcardContent,
   WifiContent,
 } from "../types";
@@ -25,6 +29,10 @@ const CONTENT_TYPES: { id: QrContentType; label: string }[] = [
   { id: "text", label: "Plain text" },
   { id: "wifi", label: "Wi-Fi login" },
   { id: "vcard", label: "vCard contact" },
+  { id: "phone", label: "Phone call" },
+  { id: "sms", label: "SMS" },
+  { id: "social", label: "Social profile" },
+  { id: "payment", label: "Payment" },
 ] as const;
 
 const WIFI_SECURITIES = [
@@ -32,6 +40,16 @@ const WIFI_SECURITIES = [
   { id: "WEP", label: "WEP" },
   { id: "nopass", label: "Open (no password)" },
 ] as const;
+
+const SOCIAL_PLATFORMS: { id: SocialPlatform; label: string }[] = [
+  { id: "instagram", label: "Instagram" },
+  { id: "facebook", label: "Facebook" },
+  { id: "twitter", label: "X / Twitter" },
+  { id: "linkedin", label: "LinkedIn" },
+  { id: "tiktok", label: "TikTok" },
+  { id: "youtube", label: "YouTube" },
+  { id: "threads", label: "Threads" },
+];
 
 const LABEL_SIZES: LabelSize[] = ["sm", "md", "lg"];
 const LABEL_WEIGHTS: LabelWeight[] = ["regular", "bold"];
@@ -47,6 +65,10 @@ interface ControlsPanelProps {
   onTextChange: (value: string) => void;
   onWifiChange: (partial: Partial<WifiContent>) => void;
   onVcardChange: (partial: Partial<VcardContent>) => void;
+  onPhoneChange: (partial: { number: string }) => void;
+  onSmsChange: (partial: Partial<SmsContent>) => void;
+  onSocialChange: (partial: Partial<SocialContent>) => void;
+  onPaymentChange: (partial: Partial<PaymentContent>) => void;
   onStyleChange: (value: QrDesignState["style"]) => void;
   onForegroundChange: (value: string) => void;
   onBackgroundChange: (value: string) => void;
@@ -67,6 +89,10 @@ export function ControlsPanel({
   onTextChange,
   onWifiChange,
   onVcardChange,
+  onPhoneChange,
+  onSmsChange,
+  onSocialChange,
+  onPaymentChange,
   onStyleChange,
   onForegroundChange,
   onBackgroundChange,
@@ -101,7 +127,16 @@ export function ControlsPanel({
       {renderContentFields(
         design.contentType,
         design.content,
-        { onUrlChange, onTextChange, onWifiChange, onVcardChange },
+        {
+          onUrlChange,
+          onTextChange,
+          onWifiChange,
+          onVcardChange,
+          onPhoneChange,
+          onSmsChange,
+          onSocialChange,
+          onPaymentChange,
+        },
       )}
 
       <p className="hint">
@@ -251,6 +286,10 @@ function renderContentFields(
     onTextChange: (value: string) => void;
     onWifiChange: (partial: Partial<WifiContent>) => void;
     onVcardChange: (partial: Partial<VcardContent>) => void;
+    onPhoneChange: (partial: { number: string }) => void;
+    onSmsChange: (partial: Partial<SmsContent>) => void;
+    onSocialChange: (partial: Partial<SocialContent>) => void;
+    onPaymentChange: (partial: Partial<PaymentContent>) => void;
   },
 ) {
   if (type === "url") {
@@ -336,6 +375,177 @@ function renderContentFields(
           />
           <span>Hidden network</span>
         </label>
+      </div>
+    );
+  }
+
+  if (type === "phone") {
+    return (
+      <div className="content-card">
+        <label className="field">
+          <span>Phone number</span>
+          <input
+            type="tel"
+            placeholder="+1 555 123 4567"
+            value={content.phone.number}
+            onChange={(event) =>
+              handlers.onPhoneChange({ number: event.target.value })
+            }
+          />
+        </label>
+        <p className="hint">Include the country code for best compatibility.</p>
+      </div>
+    );
+  }
+
+  if (type === "sms") {
+    return (
+      <div className="content-card">
+        <label className="field">
+          <span>Recipient number</span>
+          <input
+            type="tel"
+            placeholder="+1 555 123 4567"
+            value={content.sms.number}
+            onChange={(event) =>
+              handlers.onSmsChange({ number: event.target.value })
+            }
+          />
+        </label>
+        <label className="field">
+          <span>Message (optional)</span>
+          <textarea
+            rows={3}
+            placeholder="Add the message body to prefill the SMS."
+            value={content.sms.message}
+            onChange={(event) =>
+              handlers.onSmsChange({ message: event.target.value })
+            }
+          />
+        </label>
+      </div>
+    );
+  }
+
+  if (type === "social") {
+    return (
+      <div className="content-card">
+        <label className="field">
+          <span>Platform</span>
+          <select
+            value={content.social.platform}
+            onChange={(event) =>
+              handlers.onSocialChange({
+                platform: event.target.value as SocialContent["platform"],
+              })
+            }
+          >
+            {SOCIAL_PLATFORMS.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="field">
+          <span>Handle / username</span>
+          <input
+            type="text"
+            placeholder="@yourname"
+            value={content.social.handle}
+            onChange={(event) =>
+              handlers.onSocialChange({ handle: event.target.value })
+            }
+          />
+        </label>
+
+        <label className="field">
+          <span>Custom URL (optional)</span>
+          <input
+            type="url"
+            placeholder="https://social.example/yourname"
+            value={content.social.customUrl}
+            onChange={(event) =>
+              handlers.onSocialChange({ customUrl: event.target.value })
+            }
+          />
+        </label>
+        <p className="hint">Provide either a handle or a custom link.</p>
+      </div>
+    );
+  }
+
+  if (type === "payment") {
+    return (
+      <div className="content-card">
+        <label className="field">
+          <span>Payment link URL</span>
+          <input
+            type="url"
+            placeholder="https://checkout.yourstore.com"
+            value={content.payment.url}
+            onChange={(event) =>
+              handlers.onPaymentChange({ url: event.target.value })
+            }
+          />
+        </label>
+
+        <label className="field">
+          <span>Payee / business name</span>
+          <input
+            type="text"
+            placeholder="Studio One"
+            value={content.payment.payee}
+            onChange={(event) =>
+              handlers.onPaymentChange({ payee: event.target.value })
+            }
+          />
+        </label>
+
+        <div className="field field--dual">
+          <label>
+            <span>Amount</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="49.00"
+              value={content.payment.amount}
+              onChange={(event) =>
+                handlers.onPaymentChange({ amount: event.target.value })
+              }
+            />
+          </label>
+
+          <label>
+            <span>Currency</span>
+            <input
+              type="text"
+              placeholder="USD"
+              value={content.payment.currency}
+              onChange={(event) =>
+                handlers.onPaymentChange({ currency: event.target.value })
+              }
+            />
+          </label>
+        </div>
+
+        <label className="field">
+          <span>Reference / memo</span>
+          <input
+            type="text"
+            placeholder="Invoice 123"
+            value={content.payment.reference}
+            onChange={(event) =>
+              handlers.onPaymentChange({ reference: event.target.value })
+            }
+          />
+        </label>
+        <p className="hint">
+          The QR links to your payment URL and appends the optional details
+          above.
+        </p>
       </div>
     );
   }

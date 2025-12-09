@@ -9,7 +9,7 @@ Create **polished, branded QR codes** with multiple visual styles, logo upload, 
 ## Features
 
 - Minimal, responsive interface with a controls panel and real-time preview panel.
-- Multiple content options: destination URL, plain text notes, Wi-Fi credentials (with SSID/security/hidden toggles), and vCard contact cards. Each type gets contextual validation and formatting.
+- Multiple content options: destination URL, plain text notes, Wi-Fi credentials (with SSID/security/hidden toggles), vCard contact cards, phone calls, SMS presets, social profile links, and payment links—each with contextual validation and formatting.
 - Style selector: **Classic**, **Rounded**, **Dots**, **Pills**, **Outline** rendered through a custom drawing pipeline.
 - Foreground/background color pickers with contrast warnings plus a transparent background toggle (PNG/WEBP/SVG only).
 - Client-side logo upload (PNG/JPEG/WEBP/SVG, ≤ 4 MB) with a size slider and optional white safe zone.
@@ -98,7 +98,7 @@ If/when an Express backend is added to serve the compiled frontend, document the
 ## Usage Workflow
 
 1. Launch the dev server and open the app.
-2. Pick a **content type** (URL, Text, Wi-Fi, vCard) and fill out the contextual form. The preview only renders—and downloads only enable—when the required fields are valid (e.g., SSID + password for secured Wi-Fi, a full name for vCards).
+2. Pick a **content type** (URL, Text, Wi-Fi, vCard, Phone, SMS, Social, Payment) and fill out the contextual form. The preview only renders—and downloads only enable—when the required fields are valid (e.g., SSID + password for secured Wi-Fi, a full name for vCards, a phone number for tel/SMS, or a payment link).
 3. Choose a QR style (Classic, Rounded, Dots, Pills, Outline).
 4. Pick foreground/background colors and optionally enable a transparent background.
 5. Upload a brand logo (PNG/JPEG/WEBP/SVG up to 4 MB). Adjust the size slider and toggle the white safe zone for better scannability.
@@ -114,6 +114,10 @@ If/when an Express backend is added to serve the compiled frontend, document the
 - **Plain text** – Notes, promo codes, or any short copy block.
 - **Wi-Fi** – Encodes SSID, security (WPA/WEP/Open), password, and the optional “hidden network” toggle using the `WIFI:` payload format supported by modern phones.
 - **vCard** – Generates a VCARD 3.0 payload with name, organization, title, phone, email, website, and notes so scanners can save a contact instantly.
+- **Phone** – Launches the dialer using a `tel:` link (include country codes for travel-friendly results).
+- **SMS** – Opens the messaging app addressed to your number with an optional pre-filled message body.
+- **Social media** – Choose from Instagram, Facebook, X/Twitter, LinkedIn, TikTok, YouTube, or Threads (or override with a custom URL) to drive to a profile page.
+- **Payment** – Link to any hosted checkout (Stripe, Square, PayPal, etc.); optional payee, amount, currency, and reference values are appended as query params.
 
 ---
 
